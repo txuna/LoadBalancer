@@ -28,8 +28,7 @@ class Proxy
         Message *ParseMessage(Net::Socket *socket);
 
         std::tuple<int, json> ProcessControlChannel(Net::Socket *socket);
-        int ProcessTcpProxy(Net::Socket *socket, int mask);
-
+        int ProcessTcpProxy(Net::Socket *socket);
 };
 
 #endif 

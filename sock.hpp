@@ -42,6 +42,7 @@ namespace Net
             SockAddr *sock_addr;
             byte_t *querybuf;   /* 데이터가 담긴 버퍼 */
             length_t querylen = 0;
+            int connection_port = 0; /* TcpProxyClient의 경우 사용 어떠한 바인드된 포트로 연결되었는지 확인 */
 
             Socket();
             virtual ~Socket();

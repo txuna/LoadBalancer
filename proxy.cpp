@@ -149,6 +149,7 @@ void Proxy::ProcessEvent(int retval)
                 std::cout<<"HELLO TCP"<<std::endl;
                 if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::TcpProxyClient) == C_ERR)
                 {
+                    DeleteSocket(socket);
                     continue;
                 }
 
@@ -159,17 +160,19 @@ void Proxy::ProcessEvent(int retval)
             case SockType::TcpProxyClient:
             {
                 std::cout<<"Hello CLIENT"<<std::endl;
-                if(socket->ReadSocket() == C_ERR)
+                if(ProcessTcpProxy(socket) == C_ERR)
                 {
-                    std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
-                    continue;
+                    // ERROR 
                 }
 
+                std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
+                /* 클라이언트가 접속한 포트의 relay_port에 쏴줘야 함 새로운 커넥션 생성 */
                 write(1, socket->querybuf, socket->querylen);
                 break;
             }
 
             /* 연결된 UDP 서버로 릴레이 */
+            /* UDP는 클라이언트없이 여기서 바로 하는 듯 */
             case SockType::UdpProxyServer:
             {
                 std::cout<<"Hello UDP"<<std::endl;
@@ -203,6 +206,8 @@ int Proxy::ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type)
             return C_ERR;
         }
     }
+
+    c_socket->connection_port = socket->connection_port = GetBindPortFromSocket(socket);
 
     return C_ERR;
 }
@@ -289,6 +294,26 @@ std::tuple<int, json> Proxy::ProcessControlChannel(Net::Socket *socket)
 int Proxy::GetBindPortFromSocket(Net::Socket *socket)
 {
     return ntohs(socket->sock_addr->adr.sin_port);
+}
+
+/**
+ * 어떠한 바인딩된 포트와 왔는지 확인 필요
+*/
+int Proxy::ProcessTcpProxy(Net::Socket *socket)
+{
+    if(socket->ReadSocket() == C_ERR)
+    {
+        std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
+        return C_ERR;
+    }
+
+    struct sockaddr_in addr; 
+    socklen_t len = sizeof(addr);
+
+    getpeername(socket->fd, (struct sockaddr*)&addr, &len); 
+    std::cout<<"PORT: "<<ntohs(addr.sin_port)<<std::endl;
+
+    return C_OK;
 }
 
 Proxy::~Proxy()
