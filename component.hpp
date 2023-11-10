@@ -6,6 +6,9 @@
 #include <iostream>
 
 #include "sock.hpp"
+#include "common.hpp"
+
+#include "epoll_event.hpp"
 
 /**
  * NOTE! 
@@ -13,76 +16,41 @@
  * binding port는 참조하는 레퍼런스의 갯수 체크 필요 0이 될 시 해당 포트 close
 */
 
-class IPEndpoint
-{
-    public:
-        int port; 
-        int addr;
-        std::string protocol;
-};
-
-class Bind
-{
-    public:
-        int port; 
-        int count; 
-
-        Bind();
-        virtual ~Bind();
-        virtual void Open() = 0;
-        virtual void Close() = 0;
-
-        void Dereference();
-        void Reference();
-};
-
-class TcpBind : public Bind
-{
-    public:
-        Net::TcpSocket *socket;
-
-        TcpBind();
-        virtual ~TcpBind();
-        virtual void Open();
-        virtual void Close();
-};
-
-class UdpBind : public Bind
-{
-    public:
-        Net::UdpSocket *socket;
-
-        UdpBind();
-        virtual ~UdpBind();
-        virtual void Open();
-        virtual void Close();
-};
-
-class Component
-{
-    public: 
-        IPEndpoint ip_endpoint;
-
-        Component();
-        ~Component();
-};
-
-
-/* NOTE! This class will be accessed by many proxy threads. SO, NEED LOCK! */
-class ComponentManager
+class BindComponent
 {
     private:
-        std::vector<Component> components;
-        std::vector<Bind*> binds;
+        /* Control Channel은 TCP 연결이기 때문에 연결유지되어 있다면 언제든지 getpeername으로 주소정보 가지고 올 수 있음*/
+        std::vector<socket_t> fds;   
+        int port;
+        std::string protocol;
+        Net::Socket *bind_socket = nullptr;
 
     public:
-        ComponentManager();
-        ~ComponentManager();
+        BindComponent();
+        ~BindComponent();
 
-        int AppendComponent();
-        int DeleteComponent();
-        int FindComponent();
-        std::vector<Component> &LoadComponents();
+        Net::TcpSocket *BindTcpSocket(int port, socket_t fd);
+        Net::UdpSocket *BindUdpSocket(int port, socket_t fd);
+        bool HasFd(socket_t fd);
+        bool Compare(std::string protocol, int port);
+        void AppendFD(socket_t fd);
+        void DeleteFD(socket_t fd);
+        int LenFDS();
+        Net::Socket *GetSocket();
+};
+
+class BindManager
+{
+    private:
+        std::vector<BindComponent*> binds;
+
+    public:
+        BindManager();
+        ~BindManager();
+
+        std::tuple<ErrorCode, Net::Socket*> AddBind(std::string protocol, int port, socket_t fd);
+        std::tuple<ErrorCode, Net::Socket*> DeleteBind(socket_t fd); 
+        BindComponent *LoadBindComponent(std::string protocol, int port);
 };
 
 #endif 

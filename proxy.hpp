@@ -6,10 +6,12 @@
 #include "epoll_event.hpp"
 #include "message.hpp"
 
+#include <tuple>
+
 class Proxy
 {
     private:
-        ComponentManager *cm;
+        BindManager *bm;
         Epoll::EventLoop el;
 
     public:
@@ -23,6 +25,8 @@ class Proxy
         int ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type);
         int DeleteSocket(Net::Socket *socket);
         Message *ParseMessage(Net::Socket *socket);
+
+        std::tuple<int, json> ProcessControlChannel(Net::Socket *socket);
 
 };
 

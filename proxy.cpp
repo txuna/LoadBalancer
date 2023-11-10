@@ -5,7 +5,7 @@
 
 Proxy::Proxy()
 {
-    cm = new ComponentManager();
+    bm = new BindManager();
 
     if(el.CreateEventLoop() == C_ERR)
     {
@@ -14,8 +14,34 @@ Proxy::Proxy()
     }
 }
 
+// bind목록 컴포넌트 목록등 확인하여 제거 필요
 int Proxy::DeleteSocket(Net::Socket *socket)
 {
+    // bind 목록에서 먼저 제거
+    if(socket->sock_type == SockType::BalancerProxyClient)
+    {
+        // call bm->DeleteBind();
+        ErrorCode err; 
+        Net::Socket *bind_socket = nullptr;
+        std::tie(err, bind_socket) = bm->DeleteBind(socket->fd);
+        if(err != ErrorCode::None)
+        {
+            std::cout<<"[DEBUG] isn't bind socket"<<std::endl;
+        }
+        else
+        {
+            if(bind_socket != nullptr)
+            {
+                el.DelEvent(bind_socket);
+                std::cout<<"[DEBUG] remove bind socket"<<std::endl;
+            }
+            else
+            {
+                std::cout<<"[DEBUG] reduce bind reference"<<std::endl;
+            }
+        }
+    }
+
     el.DelEvent(socket);
     return C_OK;
 }
@@ -94,30 +120,18 @@ void Proxy::ProcessEvent(int retval)
             }
 
             /* 컴포넌트의 메시지 처리 */
-            /* register의 경우 bind */
             case SockType::BalancerProxyClient:
             {
-                if(socket->ReadMsgPackFromSocket() == C_ERR)
+                int err; 
+                json res; 
+                std::tie(err, res) = ProcessControlChannel(socket);
+                if(err == C_ERR)
                 {
-                    std::cout<<"[DEBUG] Client read Error"<<std::endl;
                     DeleteSocket(socket);
                     continue; 
                 }
 
-                Message *message = ParseMessage(socket);
-                if(message == nullptr)
-                {
-                    std::cout<<"[DEBUG] Client Parse Error"<<std::endl;
-                    DeleteSocket(socket);
-                    break; 
-                }
-
-                std::cout<<message->msg<<std::endl;
-                BalancerProxy bproxy = BalancerProxy(); 
-                json res = bproxy.Controller(message->msg);
                 std::cout<<res<<std::endl;
-
-                delete message;
                 break;
             }
 
@@ -181,23 +195,26 @@ int Proxy::BindTcpSocket(int port, int sock_type)
 
     if(socket->CreateSocket(sock_type, SOCK_STREAM) == C_ERR)
     {
+        delete socket;
         return C_ERR;
     } 
 
     if(socket->BindSocket() == C_ERR)
     {
+        delete socket;
         return C_ERR;
     }
 
     if(socket->ListenSocket() == C_ERR)
     {
+        delete socket;
         return C_ERR;
     }
 
     /* Add Load Balancer Socket in epoll */
     if(el.AddEvent(socket) == C_ERR)
     {
-        std::cerr<<"Failed AddEvent()"<<std::endl;
+        delete socket;
         return C_ERR;
     }
 
@@ -211,18 +228,43 @@ int Proxy::BindUdpSocket(int port, int sock_type)
 
     if(socket->CreateSocket(sock_type, SOCK_DGRAM) == C_ERR)
     {
+        delete socket;
         return C_ERR;
     } 
 
     if(socket->BindSocket() == C_ERR)
     {
+        delete socket;
         return C_ERR;
     }
 
     return C_OK;
 }
 
+std::tuple<int, json> Proxy::ProcessControlChannel(Net::Socket *socket)
+{
+    if(socket->ReadMsgPackFromSocket() == C_ERR)
+    {
+        std::cout<<"[DEBUG] Client read Error"<<std::endl;
+        return std::make_tuple(C_ERR, json());
+    }
+
+    Message *message = ParseMessage(socket);
+    if(message == nullptr)
+    {
+        std::cout<<"[DEBUG] Client Parse Error"<<std::endl;
+        return std::make_tuple(C_ERR, json()); 
+    }
+
+    std::cout<<message->msg<<std::endl;
+    BalancerProxy bproxy = BalancerProxy(&el, bm, socket); 
+    json res = bproxy.Controller(message->msg);
+
+    delete message;
+    return std::make_tuple(C_OK, res);
+}
+
 Proxy::~Proxy()
 {
-    delete cm;
+    delete bm;
 }

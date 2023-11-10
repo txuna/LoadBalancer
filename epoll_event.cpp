@@ -10,7 +10,12 @@ Epoll::EventLoop::EventLoop()
 
 Epoll::EventLoop::~EventLoop()
 {
+    for(Net::Socket *socket: events)
+    {
+        delete socket;
+    }
 
+    events.clear();
 }
 
 int Epoll::EventLoop::CreateEventLoop()

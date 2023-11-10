@@ -49,6 +49,10 @@ enum ErrorCode
     AlreadyRegistered = 3,
     AlreadyUnRegistered = 4,
     AlreadyUsedBindPort = 5,
+    InvalidRegisterProtocol = 6,
+    InternalError = 7,
+    BindError = 8,
+    CannotFoundFD = 9,
 };
 
 #endif

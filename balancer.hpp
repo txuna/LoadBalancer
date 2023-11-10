@@ -3,6 +3,8 @@
 
 #include "main.hpp"
 #include "component.hpp"
+#include "epoll_event.hpp"
+#include "sock.hpp"
 
 
 
@@ -13,8 +15,13 @@
 */
 class BalancerProxy
 {
+    private:
+        BindManager *bm; 
+        Epoll::EventLoop *el; 
+        Net::Socket *socket; 
+
     public:
-        BalancerProxy();
+        BalancerProxy(Epoll::EventLoop *el, BindManager *bm, Net::Socket *socket);
         ~BalancerProxy();
         
         ErrorCode RegisterComponent(std::string protocol, int port);
