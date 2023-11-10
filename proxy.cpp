@@ -147,23 +147,25 @@ void Proxy::ProcessEvent(int retval)
             case SockType::TcpProxyServer:
             {
                 std::cout<<"HELLO TCP"<<std::endl;
-                int host_port = ntohs(socket->sock_addr->adr.sin_port);
-                //std::cout<<"Server Port: "<<socket->sock_addr->adr.sin_port<<std::endl;
-                BindComponent *bc = bm->LoadBindComponent("tcp", host_port);
-                
-                std::vector<Component*> *comps = bc->GetComps();
-                for(auto i: *comps)
+                if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::TcpProxyClient) == C_ERR)
                 {
-                    std::cout<<ntohs(i->addr.sin_port)<<std::endl;
+                    continue;
                 }
-                //TcpProxy tproxy = TcpProxy();
+
                 break;
             }
 
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::TcpProxyClient:
             {
-                TcpProxy tproxy = TcpProxy();
+                std::cout<<"Hello CLIENT"<<std::endl;
+                if(socket->ReadSocket() == C_ERR)
+                {
+                    std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
+                    continue;
+                }
+
+                write(1, socket->querybuf, socket->querylen);
                 break;
             }
 
@@ -197,6 +199,7 @@ int Proxy::ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type)
     {
         if(el.AddEvent(c_socket) == C_ERR)
         {
+            delete c_socket;
             return C_ERR;
         }
     }
@@ -281,6 +284,11 @@ std::tuple<int, json> Proxy::ProcessControlChannel(Net::Socket *socket)
 
     delete message;
     return std::make_tuple(C_OK, res);
+}
+
+int Proxy::GetBindPortFromSocket(Net::Socket *socket)
+{
+    return ntohs(socket->sock_addr->adr.sin_port);
 }
 
 Proxy::~Proxy()

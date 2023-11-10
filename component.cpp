@@ -25,7 +25,7 @@ BindComponent::~BindComponent()
 
 }
 
-void BindComponent::AppendFD(socket_t fd, int relay_port)
+void BindComponent::AppendComponent(socket_t fd, int relay_port)
 {
     Component *component = new Component(fd, relay_port);
     comps.push_back(component);
@@ -42,7 +42,7 @@ bool BindComponent::Compare(std::string protocol, int port)
     return false;
 }
 
-bool BindComponent::HasFd(socket_t fd)
+bool BindComponent::HasComponent(socket_t fd)
 {
     for(Component *c: comps)
     {
@@ -81,7 +81,7 @@ Net::TcpSocket *BindComponent::BindTcpSocket(int port, socket_t fd, int relay_po
         return nullptr;
     }
 
-    AppendFD(fd, relay_port);
+    AppendComponent(fd, relay_port);
     bind_socket = socket;
 
     return (Net::TcpSocket*)bind_socket;
@@ -107,13 +107,13 @@ Net::UdpSocket *BindComponent::BindUdpSocket(int port, socket_t fd, int relay_po
         return nullptr;
     }
 
-    AppendFD(fd, relay_port);
+    AppendComponent(fd, relay_port);
     bind_socket = socket;
 
     return (Net::UdpSocket*)bind_socket;
 }
 
-void BindComponent::DeleteFD(socket_t fd)
+void BindComponent::DeleteComponent(socket_t fd)
 {
     auto it = std::find_if(comps.begin(), comps.end(), 
                         [fd](Component *c){
@@ -160,7 +160,7 @@ std::tuple<ErrorCode, Net::Socket*> BindManager::AddBind(std::string protocol, i
     // 이미 동일한 fd로 바인드되고 있는지 확인
     for(BindComponent *bc: binds)
     {
-        if(bc->HasFd(fd) == true)
+        if(bc->HasComponent(fd) == true)
         {
             return std::make_tuple(ErrorCode::AlreadyRegistered, nullptr);
         }
@@ -170,7 +170,7 @@ std::tuple<ErrorCode, Net::Socket*> BindManager::AddBind(std::string protocol, i
     // 이미 해당 포트와 프로토콜로 바인딩 되고 있다면 
     if(bc != nullptr)
     {
-        bc->AppendFD(fd, relay_port);
+        bc->AppendComponent(fd, relay_port);
         return std::make_tuple(ErrorCode::None, nullptr);
     }
 
@@ -206,9 +206,9 @@ std::tuple<ErrorCode, Net::Socket *> BindManager::DeleteBind(socket_t fd)
     /* fds의 사이즈가 0이 된다면 해당 바인드 삭제 */
     for(BindComponent *bc: binds)
     {
-        if(bc->HasFd(fd) == true)
+        if(bc->HasComponent(fd) == true)
         {
-            bc->DeleteFD(fd);
+            bc->DeleteComponent(fd);
             if(bc->LenFDS() == 0)
             {
                 auto it = std::find(binds.begin(), binds.end(), bc); 

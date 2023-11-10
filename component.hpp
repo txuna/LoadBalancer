@@ -30,10 +30,10 @@ class BindComponent
 {
     private:
         /* Control Channel은 TCP 연결이기 때문에 연결유지되어 있다면 언제든지 getpeername으로 주소정보 가지고 올 수 있음*/
-        std::vector<Component*> comps;   
+        std::vector<Component*> comps;   /* 바인딩 소켓으로부터 릴레이 해줄 컴포넌트 리스트 */
         int port;
         std::string protocol;
-        Net::Socket *bind_socket = nullptr;
+        Net::Socket *bind_socket = nullptr; /* 새로 바인딩된 소켓 */
 
     public:
         BindComponent();
@@ -41,10 +41,10 @@ class BindComponent
 
         Net::TcpSocket *BindTcpSocket(int port, socket_t fd, int relay_port);
         Net::UdpSocket *BindUdpSocket(int port, socket_t fd, int relay_port);
-        bool HasFd(socket_t fd);
+        bool HasComponent(socket_t fd);
         bool Compare(std::string protocol, int port);
-        void AppendFD(socket_t fd, int relay_port);
-        void DeleteFD(socket_t fd);
+        void AppendComponent(socket_t fd, int relay_port);
+        void DeleteComponent(socket_t fd);
         int LenFDS();
         Net::Socket *GetSocket();
         std::vector<Component*> *GetComps()

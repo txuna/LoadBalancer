@@ -24,9 +24,11 @@ class Proxy
         int BindUdpSocket(int port, int sock_type);
         int ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type);
         int DeleteSocket(Net::Socket *socket);
+        int GetBindPortFromSocket(Net::Socket *socket);
         Message *ParseMessage(Net::Socket *socket);
 
         std::tuple<int, json> ProcessControlChannel(Net::Socket *socket);
+        int ProcessTcpProxy(Net::Socket *socket, int mask);
 
 };
 
