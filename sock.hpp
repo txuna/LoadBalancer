@@ -10,6 +10,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <netinet/in.h>
+#include <netinet/ip.h> 
+
 #include "common.hpp"
 
 #define TCP_PROTOCOL 1

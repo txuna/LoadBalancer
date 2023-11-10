@@ -18,14 +18,16 @@ ErrorCode BalancerProxy::Verify(const json &req)
 {
     if(req.contains("cmd") == false
     || req.contains("protocol") == false
-    || req.contains("port") == false)
+    || req.contains("port") == false
+    || req.contains("relay_port") == false)
     {
         return ErrorCode::InvalidRequest;
     }
 
     if(req["cmd"].type() != json::value_t::string
     || req["protocol"].type() != json::value_t::string
-    || req["port"].type() != json::value_t::number_unsigned)
+    || req["port"].type() != json::value_t::number_unsigned
+    || req["relay_port"].type() != json::value_t::number_unsigned)
     {
         return ErrorCode::InvalidRequest;
     }
@@ -50,12 +52,13 @@ json BalancerProxy::Controller(const json &req)
     std::string cmd = req["cmd"];
     std::string protocol = req["protocol"];
     int port = req["port"];
+    int relay_port = req["relay_port"];
 
     if(cmd == "register")
     {
         if(protocol == "tcp" || protocol == "udp")
         {
-            response["error"] = RegisterComponent(protocol, port);
+            response["error"] = RegisterComponent(protocol, port, relay_port);
         }
         else
         {
@@ -65,7 +68,7 @@ json BalancerProxy::Controller(const json &req)
 
     else if(cmd == "unregister")
     {
-        response["error"] = UnRegisterComponent(protocol, port);
+        response["error"] = UnRegisterComponent(protocol, port, relay_port);
     }
     
     else
@@ -78,17 +81,17 @@ json BalancerProxy::Controller(const json &req)
 }
 
 /**
- * {"cmd": "register", "protocol", "tcp", "port": 80}
+ * {"cmd": "register", "protocol", "tcp", "port": 80, "relay_port" : 8000}
 */
 /**
  * 넘겨받은 port, 넘겨받은 주소 쌍 만들기 == (port, IPEndpoint)
 */
-ErrorCode BalancerProxy::RegisterComponent(std::string protocol, int port)
+ErrorCode BalancerProxy::RegisterComponent(std::string protocol, int port, int relay_port)
 {
     /* protocol과 port 겹치는거 있는지 확인 */
     ErrorCode err;
     Net::Socket *bind_socket; 
-    std::tie(err, bind_socket) = bm->AddBind(protocol, port, socket->fd);
+    std::tie(err, bind_socket) = bm->AddBind(protocol, port, socket->fd, relay_port);
     if(err != ErrorCode::None)
     {
         return err;
@@ -112,7 +115,7 @@ ErrorCode BalancerProxy::RegisterComponent(std::string protocol, int port)
 /**
  * {"ack": "successful"} or {"ack": "failed", "msg": "…"}
 */
-ErrorCode BalancerProxy::UnRegisterComponent(std::string protocol, int port)
+ErrorCode BalancerProxy::UnRegisterComponent(std::string protocol, int port, int relay_port)
 {
     ErrorCode err; 
     Net::Socket *bind_socket = nullptr;

@@ -1,6 +1,20 @@
 #include "component.hpp"
 #include <errno.h>
 
+Component::Component(socket_t fd, int relay_port)
+{
+    socklen_t len = sizeof(this->addr);
+
+    getpeername(fd, (struct sockaddr*)&this->addr, &len); 
+    this->addr.sin_port = htons(relay_port);
+    this->fd = fd;
+}
+
+Component::~Component()
+{
+
+}
+
 BindComponent::BindComponent()
 {
 
@@ -11,9 +25,10 @@ BindComponent::~BindComponent()
 
 }
 
-void BindComponent::AppendFD(socket_t fd)
+void BindComponent::AppendFD(socket_t fd, int relay_port)
 {
-    fds.push_back(fd);
+    Component *component = new Component(fd, relay_port);
+    comps.push_back(component);
     return;
 }
 
@@ -29,9 +44,9 @@ bool BindComponent::Compare(std::string protocol, int port)
 
 bool BindComponent::HasFd(socket_t fd)
 {
-    for(socket_t rfd: fds)
+    for(Component *c: comps)
     {
-        if(fd == rfd)
+        if(c->fd == fd)
         {
             return true;
         }
@@ -40,7 +55,7 @@ bool BindComponent::HasFd(socket_t fd)
 }
 
 
-Net::TcpSocket *BindComponent::BindTcpSocket(int port, socket_t fd)
+Net::TcpSocket *BindComponent::BindTcpSocket(int port, socket_t fd, int relay_port)
 {
     Net::SockAddr *addr = new Net::SockAddr(port);
     Net::TcpSocket *socket = new Net::TcpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
@@ -66,13 +81,13 @@ Net::TcpSocket *BindComponent::BindTcpSocket(int port, socket_t fd)
         return nullptr;
     }
 
-    AppendFD(fd);
+    AppendFD(fd, relay_port);
     bind_socket = socket;
 
     return (Net::TcpSocket*)bind_socket;
 }
 
-Net::UdpSocket *BindComponent::BindUdpSocket(int port, socket_t fd)
+Net::UdpSocket *BindComponent::BindUdpSocket(int port, socket_t fd, int relay_port)
 {
     Net::SockAddr *addr = new Net::SockAddr(port);
     Net::UdpSocket *socket = new Net::UdpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
@@ -92,7 +107,7 @@ Net::UdpSocket *BindComponent::BindUdpSocket(int port, socket_t fd)
         return nullptr;
     }
 
-    AppendFD(fd);
+    AppendFD(fd, relay_port);
     bind_socket = socket;
 
     return (Net::UdpSocket*)bind_socket;
@@ -100,20 +115,22 @@ Net::UdpSocket *BindComponent::BindUdpSocket(int port, socket_t fd)
 
 void BindComponent::DeleteFD(socket_t fd)
 {
-    auto it = std::find_if(fds.begin(), fds.end(), 
-                        [fd](socket_t rfd){
-                            return rfd == fd;
+    auto it = std::find_if(comps.begin(), comps.end(), 
+                        [fd](Component *c){
+                            return c->fd == fd;
                         });
 
-    if(it != fds.end())
+    if(it != comps.end())
     {
-        fds.erase(it);
+        Component *rc = *it;
+        comps.erase(it);
+        delete rc;
     }
 }
 
 int BindComponent::LenFDS()
 {
-    return fds.size();
+    return comps.size();
 }
 
 Net::Socket *BindComponent::GetSocket()
@@ -138,7 +155,7 @@ BindManager::~BindManager()
     binds.clear();
 }
 
-std::tuple<ErrorCode, Net::Socket*> BindManager::AddBind(std::string protocol, int port, socket_t fd)
+std::tuple<ErrorCode, Net::Socket*> BindManager::AddBind(std::string protocol, int port, socket_t fd, int relay_port)
 {
     // 이미 동일한 fd로 바인드되고 있는지 확인
     for(BindComponent *bc: binds)
@@ -153,7 +170,7 @@ std::tuple<ErrorCode, Net::Socket*> BindManager::AddBind(std::string protocol, i
     // 이미 해당 포트와 프로토콜로 바인딩 되고 있다면 
     if(bc != nullptr)
     {
-        bc->AppendFD(fd);
+        bc->AppendFD(fd, relay_port);
         return std::make_tuple(ErrorCode::None, nullptr);
     }
 
@@ -162,12 +179,12 @@ std::tuple<ErrorCode, Net::Socket*> BindManager::AddBind(std::string protocol, i
 
     if(protocol == "tcp")
     {
-        bind_socket = new_bc->BindTcpSocket(port, fd);
+        bind_socket = new_bc->BindTcpSocket(port, fd, relay_port);
     }
 
     else if(protocol == "udp")
     {
-        bind_socket = new_bc->BindUdpSocket(port, fd);
+        bind_socket = new_bc->BindUdpSocket(port, fd, relay_port);
     }
 
     /* socket bind실패시 바인드 목록 삭제 */

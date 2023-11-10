@@ -2,7 +2,6 @@
 #define __COMMON_H_
 
 #include <stdint.h>
-
 #include "./include/nlohmann/json.hpp"
 
 using json = nlohmann::json;

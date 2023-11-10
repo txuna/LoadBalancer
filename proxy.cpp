@@ -136,9 +136,27 @@ void Proxy::ProcessEvent(int retval)
             }
 
             /* 연결된 TCP 서버로 릴레이 */
+            /**
+             * 1. 서버로 접근하려는 클라이언트와 ACCEPT을 하고 해당 소켓을 TcpProxyClient로 설정한다. 
+             * 2. 요청한 포트번호로 연결된 컴포넌트의 fd들 중 하나를 getpeername으로 ip주소와 포트를 알아냄
+             * 3. 거기로 connect해서 데이터 전송 및 수신
+             * 4. 수신 된 데이터 Client에게 전송
+             * 
+             * 5. 어떻게 포트랑 IP알것인가
+            */
             case SockType::TcpProxyServer:
             {
-                TcpProxy tproxy = TcpProxy();
+                std::cout<<"HELLO TCP"<<std::endl;
+                int host_port = ntohs(socket->sock_addr->adr.sin_port);
+                //std::cout<<"Server Port: "<<socket->sock_addr->adr.sin_port<<std::endl;
+                BindComponent *bc = bm->LoadBindComponent("tcp", host_port);
+                
+                std::vector<Component*> *comps = bc->GetComps();
+                for(auto i: *comps)
+                {
+                    std::cout<<ntohs(i->addr.sin_port)<<std::endl;
+                }
+                //TcpProxy tproxy = TcpProxy();
                 break;
             }
 
@@ -152,6 +170,7 @@ void Proxy::ProcessEvent(int retval)
             /* 연결된 UDP 서버로 릴레이 */
             case SockType::UdpProxyServer:
             {
+                std::cout<<"Hello UDP"<<std::endl;
                 UdpProxy uproxy = UdpProxy();
                 break;
             }

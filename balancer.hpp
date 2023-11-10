@@ -24,8 +24,8 @@ class BalancerProxy
         BalancerProxy(Epoll::EventLoop *el, BindManager *bm, Net::Socket *socket);
         ~BalancerProxy();
         
-        ErrorCode RegisterComponent(std::string protocol, int port);
-        ErrorCode UnRegisterComponent(std::string protocol, int port);
+        ErrorCode RegisterComponent(std::string protocol, int port, int relay_port);
+        ErrorCode UnRegisterComponent(std::string protocol, int port, int relay_port);
         json Controller(const json &req);
         json HealthCheckComponent();
         ErrorCode Verify(const json &req);
