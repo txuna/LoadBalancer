@@ -8,7 +8,7 @@ import time
 
 LoadBalancerIP = "127.0.0.1"
 LoadBalancerPORT = 9988 
-ApiPORT = 30000
+ApiPORT = 40000
 
 
 app = Flask(__name__)

@@ -230,8 +230,6 @@ void Proxy::ProcessEvent(int retval)
                     continue;
                 }
 
-                std::cout<<"SEND!"<<std::endl;
-
                 delete []socket->querybuf;
                 break;
             }
@@ -263,18 +261,20 @@ void Proxy::ProcessEvent(int retval)
 int Proxy::ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type)
 {
     Net::TcpSocket *c_socket = socket->AcceptSocket(sock_type);
-    if(c_socket != nullptr)
+    if(c_socket == nullptr)
     {
-        if(el.AddEvent(c_socket) == C_ERR)
-        {
-            delete c_socket;
-            return C_ERR;
-        }
+        return C_ERR;
+    }
+
+    if(el.AddEvent(c_socket) == C_ERR)
+    {
+        delete c_socket;
+        return C_ERR;
     }
 
     c_socket->connection_port = socket->connection_port = GetBindPortFromSocket(socket);
 
-    return C_ERR;
+    return C_OK;
 }
 
 /**
