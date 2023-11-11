@@ -186,7 +186,7 @@ void Proxy::ProcessEvent(int retval)
             {
                 if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::TcpProxyClient) == C_ERR)
                 {
-                    DeleteSocket(socket);
+                    //DeleteSocket(socket);
                     continue;
                 }
 
@@ -198,7 +198,7 @@ void Proxy::ProcessEvent(int retval)
             {
                 if(ProcessTcpProxy(socket) == C_ERR)
                 {
-                    DeleteSocket(socket);
+                    //DeleteSocket(socket);
                     continue;
                 }
 
@@ -239,14 +239,18 @@ void Proxy::ProcessEvent(int retval)
             case SockType::UdpProxyServer:
             {
                 std::cout<<"Hello UDP"<<std::endl;
-                UdpProxy uproxy = UdpProxy();
+                /* 오픈된 UDP서버로 패킷 도착시 종단의 UDP 서버로 전달 */
+                /* epoll이 먹히나...? */
+                if(ProcessUdpProxy(socket) == C_ERR)
+                {
+                    continue;
+                }
                 break;
             }
 
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::UdpProxyClient:
             {
-                UdpProxy uproxy = UdpProxy();
                 break;
             }
 
@@ -388,8 +392,6 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     {
         delete relay_socket;
         delete []socket->querybuf;
-
-        std::cout<<"1"<<std::endl;
         return C_ERR;
     }
     
@@ -397,7 +399,6 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     {
         delete relay_socket;
         delete []socket->querybuf;
-        std::cout<<"12"<<std::endl;
         return C_ERR;
     }
 
@@ -405,8 +406,6 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     {
         delete relay_socket;
         delete []socket->querybuf;
-
-        std::cout<<"123"<<std::endl;
         return C_ERR;
     }
 
@@ -423,6 +422,14 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
 
     delete []socket->querybuf;
     relay_socket->connection_pair_fd = socket->fd;
+
+    return C_OK;
+}
+
+int Proxy::ProcessUdpProxy(Net::Socket *socket)
+{
+    /* UDP 클라이언트 소켓을 하나 만들고 UDP 서버에 읽은 데이터 SEND*/
+    /* 그리고 클라이언트 소켓은 epoll에 등록 */
 
     return C_OK;
 }

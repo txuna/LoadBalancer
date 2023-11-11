@@ -21,7 +21,7 @@ enum SockType
     BalancerProxyServer = 0,
     BalancerProxyClient = 1, 
     TcpProxyServer = 2,
-    TcpProxyClient = 3, 
+    TcpProxyClient = 3,
     UdpProxyServer = 4, 
     UdpProxyClient = 5,
     TcpRelayClient = 6,

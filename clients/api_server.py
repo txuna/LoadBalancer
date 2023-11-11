@@ -8,7 +8,8 @@ import time
 
 LoadBalancerIP = "127.0.0.1"
 LoadBalancerPORT = 9988 
-ApiPORT = 40000
+ApiPORT = 30000
+bindPORT = 50000
 
 
 app = Flask(__name__)
@@ -28,7 +29,7 @@ def register():
     msg = create_msgpack({
         "cmd" : "register", 
         "protocol" : "tcp", 
-        "port" : 50000, 
+        "port" : bindPORT, 
         "relay_port" : ApiPORT
     })
     
@@ -46,7 +47,7 @@ def unregister():
     msg = create_msgpack({
         "cmd" : "unregister", 
         "protocol" : "tcp", 
-        "port" : 50000, 
+        "port" : bindPORT, 
         "relay_port" : ApiPORT
     })
     
