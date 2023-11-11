@@ -70,6 +70,12 @@ json BalancerProxy::Controller(const json &req)
     {
         response["error"] = UnRegisterComponent(protocol, port, relay_port);
     }
+
+    /* 다시 클라이언트로 보내면 안됨 */
+    else if(cmd == "healthcheck_res")
+    {
+        
+    }
     
     else
     {

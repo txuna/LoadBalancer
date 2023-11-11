@@ -47,8 +47,9 @@ namespace Net
             Socket();
             virtual ~Socket();
             virtual int ReadSocket() = 0;
-            virtual int SendSocket() = 0;
+            virtual int SendSocket(byte_t *buffer, int len) = 0;
             int ReadMsgPackFromSocket();
+            int SendMsgPackToSocket(const json &msg);
             int CreateSocket(int _sock_type, int _protocol);
             int BindSocket();
     };
@@ -56,14 +57,17 @@ namespace Net
     class TcpSocket : public Socket
     {
         public:
+            socket_t connection_pair_fd; 
+
             TcpSocket(SockAddr *adr, int _mask, socket_t fd);
             TcpSocket(SockAddr *adr, int _mask);
 
             virtual int ReadSocket();
-            virtual int SendSocket();
+            virtual int SendSocket(byte_t *buffer, int len);
             virtual ~TcpSocket();
 
             int ListenSocket();
+            int ConnectSocket();
             TcpSocket *AcceptSocket(int _sock_type);
     };
 
@@ -74,7 +78,7 @@ namespace Net
             UdpSocket(SockAddr *adr, int _mask, socket_t fd);
 
             virtual int ReadSocket();
-            virtual int SendSocket();
+            virtual int SendSocket(byte_t *buffer, int len);
             virtual ~UdpSocket();
     };
 }

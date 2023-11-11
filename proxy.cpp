@@ -73,13 +73,22 @@ void Proxy::Run(int port)
     
     while(true)
     {
+        time_clock::time_point start = time_clock::now();
         int retval = el.FetchEvent();
-        if(retval <= 0 )
+        if(retval > 0 )
         {
-            continue;
+            ProcessEvent(retval);
         }
 
-        ProcessEvent(retval);
+        time_clock::time_point end = time_clock::now();
+        std::chrono::milliseconds ms_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start); 
+
+        tick += ms_duration.count();
+        if(tick >= 5000)
+        {
+            std::cout<<"Health Check"<<std::endl;
+            tick = 0;
+        }
     }
 }
 
@@ -132,21 +141,19 @@ void Proxy::ProcessEvent(int retval)
                 }
 
                 std::cout<<res<<std::endl;
+                /* res 전송 */
+                if(socket->SendMsgPackToSocket(res) == C_ERR)
+                {
+                    DeleteSocket(socket);
+                    continue;
+                }
+                
                 break;
             }
 
             /* 연결된 TCP 서버로 릴레이 */
-            /**
-             * 1. 서버로 접근하려는 클라이언트와 ACCEPT을 하고 해당 소켓을 TcpProxyClient로 설정한다. 
-             * 2. 요청한 포트번호로 연결된 컴포넌트의 fd들 중 하나를 getpeername으로 ip주소와 포트를 알아냄
-             * 3. 거기로 connect해서 데이터 전송 및 수신
-             * 4. 수신 된 데이터 Client에게 전송
-             * 
-             * 5. 어떻게 포트랑 IP알것인가
-            */
             case SockType::TcpProxyServer:
             {
-                std::cout<<"HELLO TCP"<<std::endl;
                 if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::TcpProxyClient) == C_ERR)
                 {
                     DeleteSocket(socket);
@@ -159,15 +166,33 @@ void Proxy::ProcessEvent(int retval)
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::TcpProxyClient:
             {
-                std::cout<<"Hello CLIENT"<<std::endl;
                 if(ProcessTcpProxy(socket) == C_ERR)
                 {
-                    // ERROR 
+                    DeleteSocket(socket);
+                    continue;
                 }
 
-                std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
-                /* 클라이언트가 접속한 포트의 relay_port에 쏴줘야 함 새로운 커넥션 생성 */
-                write(1, socket->querybuf, socket->querylen);
+                break;
+            }
+
+            /* 처음 요청한 클라이언트에게 전달 */
+            /* 이때 socket은 API 서버에 연결한 socket */
+            /* connection_pair_fd는 로드밸런서에 연결 시도한 사용자 */
+            case SockType::TcpRelayClient:
+            {
+                int client_fd = ((Net::TcpSocket*)socket)->connection_pair_fd;
+                Net::Socket *client_socket = el.LoadSocket(client_fd);
+                if(socket->ReadSocket() == C_ERR)
+                {
+                    continue;
+                }
+
+                if(client_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
+                {
+                    continue;
+                }
+
+                delete []socket->querybuf;
                 break;
             }
 
@@ -298,25 +323,70 @@ int Proxy::GetBindPortFromSocket(Net::Socket *socket)
 
 /**
  * 어떠한 바인딩된 포트와 왔는지 확인 필요
+ * 그냥 편하게 스레드 사용?
 */
 int Proxy::ProcessTcpProxy(Net::Socket *socket)
-{
+{   
+    /* ReadSocket 후 버퍼 비우기 필수 */
     if(socket->ReadSocket() == C_ERR)
     {
         std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
         return C_ERR;
     }
 
-    struct sockaddr_in addr; 
-    socklen_t len = sizeof(addr);
+    std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
+    /* 클라이언트가 접속한 포트의 relay_port에 쏴줘야 함 새로운 커넥션 생성 */
 
-    getpeername(socket->fd, (struct sockaddr*)&addr, &len); 
-    std::cout<<"PORT: "<<ntohs(addr.sin_port)<<std::endl;
+    BindComponent *bc = bm->LoadBindComponent("tcp", socket->connection_port);
+    Component *comp = bc->GetRoundRobinComponent();
+
+    // connect 해야하는데 시간이 걸리지 않는감 
+    // connect하고 생기는 소켓은 TcpRelayClient 
+    Net::SockAddr *addr = new Net::SockAddr(comp->addr); /* 서버의 주소 정보 */
+    Net::TcpSocket *relay_socket = new Net::TcpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
+    if(relay_socket->CreateSocket(SockType::TcpRelayClient, SOCK_STREAM) == C_ERR)
+    {
+        delete relay_socket;
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+    
+    if(relay_socket->ConnectSocket() == C_ERR)
+    {
+        delete relay_socket;
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+
+    if(el.AddEvent(relay_socket) == C_ERR)
+    {
+        delete relay_socket;
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+
+    /* 보내고 epoll_wait을 통해 데이터를 받았을 때 어디로 보내야 하는가 */
+    /* 인자로 주어진 socket에게 줘야하는데 어떻게? */
+
+    /* relay socket에 연결된 socket에게 줘야 함 */
+    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
+    {
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+
+    delete []socket->querybuf;
+    relay_socket->connection_pair_fd = socket->fd;
 
     return C_OK;
 }
 
 Proxy::~Proxy()
 {
+    for(auto &t: proxy_threads)
+    {
+        t.join();
+    }
+
     delete bm;
 }

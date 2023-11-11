@@ -34,6 +34,7 @@ class BindComponent
         int port;
         std::string protocol;
         Net::Socket *bind_socket = nullptr; /* 새로 바인딩된 소켓 */
+        int index = 0;
 
     public:
         BindComponent();
@@ -47,10 +48,8 @@ class BindComponent
         void DeleteComponent(socket_t fd);
         int LenFDS();
         Net::Socket *GetSocket();
-        std::vector<Component*> *GetComps()
-        {
-            return &comps;
-        }
+        std::vector<Component*> *GetComps();
+        Component *GetRoundRobinComponent();
 };
 
 class BindManager

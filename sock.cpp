@@ -28,6 +28,30 @@ Net::Socket::Socket()
     querybuf = nullptr; 
 }
 
+int Net::Socket::SendMsgPackToSocket(const json &msg)
+{
+    std::vector<byte_t> v = json::to_msgpack(msg);
+    byte_t *msg_byte = reinterpret_cast<byte_t*>(v.data());
+    length_t length = v.size();
+
+    byte_t *buffer = new byte_t[sizeof(length_t) + length]();
+    int offset = 0;
+
+    memcpy(buffer+offset, &length, sizeof(length_t));
+    offset += sizeof(length_t);
+    memcpy(buffer+offset, msg_byte, length);
+    offset += length;
+
+    int ret = write(fd, buffer, offset); 
+    if(ret < 0)
+    {
+        return C_ERR;
+    }
+
+    delete []buffer;
+    return C_OK;
+}
+
 int Net::Socket::ReadMsgPackFromSocket()
 {
     length_t length; 
@@ -138,14 +162,31 @@ int Net::TcpSocket::ReadSocket()
     return C_OK;
 }
 
-int Net::TcpSocket::SendSocket()
+int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
 {
+    int ret = write(fd, buffer, len);
+    if(ret <= 0)
+    {
+        return C_ERR;
+    }
     return C_OK;
 }
 
 int Net::TcpSocket::ListenSocket()
 {
     if(listen(this->fd, 5) == -1)
+    {
+        return C_ERR;
+    }
+
+    return C_OK;
+}
+
+int Net::TcpSocket::ConnectSocket()
+{
+    socklen_t addr_len = sizeof(sock_addr->adr);
+    int ret = connect(fd, (struct sockaddr*)&sock_addr->adr, addr_len);
+    if(ret < 0)
     {
         return C_ERR;
     }
@@ -200,7 +241,7 @@ int Net::UdpSocket::ReadSocket()
     return C_OK;
 }
 
-int Net::UdpSocket::SendSocket()
+int Net::UdpSocket::SendSocket(byte_t *buffer, int len)
 {
     return C_OK;
 }

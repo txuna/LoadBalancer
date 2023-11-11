@@ -6,13 +6,18 @@
 #include "epoll_event.hpp"
 #include "message.hpp"
 
+#include <thread>
 #include <tuple>
+
+typedef std::chrono::high_resolution_clock time_clock; 
 
 class Proxy
 {
     private:
         BindManager *bm;
         Epoll::EventLoop el;
+        std::vector<std::thread> proxy_threads;
+        int tick = 0;
 
     public:
         Proxy();
@@ -29,6 +34,7 @@ class Proxy
 
         std::tuple<int, json> ProcessControlChannel(Net::Socket *socket);
         int ProcessTcpProxy(Net::Socket *socket);
+        void SendHealthCheck();
 };
 
 #endif 

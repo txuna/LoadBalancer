@@ -138,6 +138,23 @@ Net::Socket *BindComponent::GetSocket()
     return bind_socket;
 }
 
+std::vector<Component*> *BindComponent::GetComps()
+{
+    return &comps;
+}
+
+Component* BindComponent::GetRoundRobinComponent()
+{
+    if(index >= comps.size())
+    {
+        index = 0;
+    }
+
+    Component *rc = comps[index];
+    index += 1;
+    return rc;
+}
+
 BindManager::BindManager()
 {
 

@@ -24,6 +24,7 @@ enum SockType
     TcpProxyClient = 3, 
     UdpProxyServer = 4, 
     UdpProxyClient = 5,
+    TcpRelayClient = 6,
 };
 
 enum ServerMsg
