@@ -188,6 +188,25 @@ int Net::TcpSocket::ConnectSocket()
     int ret = connect(fd, (struct sockaddr*)&sock_addr->adr, addr_len);
     if(ret < 0)
     {
+        if(errno == 115)
+        {
+            /* non block socket이여서 뜸 반복문으로 정상적으로 연결되었는지 확인필요 */
+            int error; 
+            socklen_t len = sizeof(error);
+            if( getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0 ) 
+            {
+                return C_ERR;
+            }
+
+            /* Connection Failed */
+            if(error != 0)
+            {
+                return C_ERR;
+            }
+
+            return C_OK;
+        }
+        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 

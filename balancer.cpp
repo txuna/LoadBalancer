@@ -16,16 +16,30 @@ BalancerProxy::~BalancerProxy()
 
 ErrorCode BalancerProxy::Verify(const json &req)
 {
-    if(req.contains("cmd") == false
-    || req.contains("protocol") == false
+    if(req.contains("cmd") == false)
+    {
+        return ErrorCode::InvalidRequest;
+    }
+
+    if(req["cmd"].type() != json::value_t::string)
+    {
+        return ErrorCode::InvalidRequest;
+    }
+
+    if(req["cmd"] == "healthcheck")
+    {
+        return ErrorCode::None;
+    }
+
+
+    if(req.contains("protocol") == false
     || req.contains("port") == false
     || req.contains("relay_port") == false)
     {
         return ErrorCode::InvalidRequest;
     }
 
-    if(req["cmd"].type() != json::value_t::string
-    || req["protocol"].type() != json::value_t::string
+    if(req["protocol"].type() != json::value_t::string
     || req["port"].type() != json::value_t::number_unsigned
     || req["relay_port"].type() != json::value_t::number_unsigned)
     {
@@ -50,6 +64,12 @@ json BalancerProxy::Controller(const json &req)
     }
     
     std::string cmd = req["cmd"];
+    if(cmd == "healthcheck")
+    {
+        return response;
+    }
+
+
     std::string protocol = req["protocol"];
     int port = req["port"];
     int relay_port = req["relay_port"];
@@ -69,12 +89,6 @@ json BalancerProxy::Controller(const json &req)
     else if(cmd == "unregister")
     {
         response["error"] = UnRegisterComponent(protocol, port, relay_port);
-    }
-
-    /* 다시 클라이언트로 보내면 안됨 */
-    else if(cmd == "healthcheck_res")
-    {
-        
     }
     
     else

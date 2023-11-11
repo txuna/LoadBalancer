@@ -257,3 +257,8 @@ BindComponent *BindManager::LoadBindComponent(std::string protocol, int port)
 
     return nullptr;
 }
+
+std::vector<BindComponent*> *BindManager::GetBinds()
+{
+    return &binds;
+}

@@ -54,7 +54,7 @@ Message *Proxy::ParseMessage(Net::Socket *socket)
     }
 
     Message *message = new Message(socket->querybuf);
-    if(message->Parse(socket->querylen) == C_ERR)
+    if(message->Parse(socket->querylen) == C_ERR)       
     {
         delete message;
         return nullptr;
@@ -86,10 +86,40 @@ void Proxy::Run(int port)
         tick += ms_duration.count();
         if(tick >= 5000)
         {
-            std::cout<<"Health Check"<<std::endl;
+            SendHealthCheck();
             tick = 0;
         }
     }
+}
+
+void Proxy::SendHealthCheck()
+{
+    json req = {
+        {"cmd", "healthcheck"},
+    };
+
+    std::vector<BindComponent*> *binds = bm->GetBinds();
+
+    for(BindComponent *bc: *binds)
+    {
+        std::vector<Component*> *comps = bc->GetComps();
+        for(Component *comp: *comps)
+        {
+            Net::Socket *socket = el.LoadSocket(comp->fd); 
+            if(socket == nullptr)
+            {
+                continue;
+            }
+
+            //std::cout<<ntohs(socket->sock_addr->adr.sin_port)<<std::endl;
+            if(socket->SendMsgPackToSocket(req) == C_ERR)
+            {
+                continue;
+            }
+        }
+    }
+
+    return;
 }
 
 void Proxy::ProcessEvent(int retval)
@@ -140,7 +170,7 @@ void Proxy::ProcessEvent(int retval)
                     continue; 
                 }
 
-                std::cout<<res<<std::endl;
+                //std::cout<<res<<std::endl;
                 /* res 전송 */
                 if(socket->SendMsgPackToSocket(res) == C_ERR)
                 {
@@ -182,15 +212,25 @@ void Proxy::ProcessEvent(int retval)
             {
                 int client_fd = ((Net::TcpSocket*)socket)->connection_pair_fd;
                 Net::Socket *client_socket = el.LoadSocket(client_fd);
+                if(client_socket == nullptr)
+                {
+                    std::cout<<"tcp relay client is null"<<std::endl;
+                    continue;
+                }
+
                 if(socket->ReadSocket() == C_ERR)
                 {
+                    std::cout<<"tcp relay client failed read"<<std::endl;
                     continue;
                 }
 
                 if(client_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
                 {
+                    std::cout<<"tcp relay client failed send"<<std::endl;
                     continue;
                 }
+
+                std::cout<<"SEND!"<<std::endl;
 
                 delete []socket->querybuf;
                 break;
@@ -348,6 +388,8 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     {
         delete relay_socket;
         delete []socket->querybuf;
+
+        std::cout<<"1"<<std::endl;
         return C_ERR;
     }
     
@@ -355,6 +397,7 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     {
         delete relay_socket;
         delete []socket->querybuf;
+        std::cout<<"12"<<std::endl;
         return C_ERR;
     }
 
@@ -362,6 +405,8 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     {
         delete relay_socket;
         delete []socket->querybuf;
+
+        std::cout<<"123"<<std::endl;
         return C_ERR;
     }
 
@@ -372,6 +417,7 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
     {
         delete []socket->querybuf;
+        std::cout<<"1234"<<std::endl;
         return C_ERR;
     }
 

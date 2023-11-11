@@ -64,6 +64,7 @@ class BindManager
         std::tuple<ErrorCode, Net::Socket*> AddBind(std::string protocol, int port, socket_t fd, int relay_port);
         std::tuple<ErrorCode, Net::Socket*> DeleteBind(socket_t fd); 
         BindComponent *LoadBindComponent(std::string protocol, int port);
+        std::vector<BindComponent*> *GetBinds();
 };
 
 #endif 
