@@ -12,7 +12,7 @@ app = Flask(__name__)
 @app.route('/')
 def hello_world():
     count = 0 
-    for i in range(1, 100000000):
+    for i in range(1, 100):
         count += i
     
     return str(count)
