@@ -34,7 +34,7 @@ class Proxy
 
         std::tuple<int, json> ProcessControlChannel(Net::Socket *socket);
         int ProcessTcpProxy(Net::Socket *socket);
-        int ProcessUdpProxy(Net::Socket *socket);
+        int ProcessUdpProxy(Net::UdpSocket *socket);
         void SendHealthCheck();
 };
 

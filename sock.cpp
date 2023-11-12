@@ -165,7 +165,7 @@ int Net::TcpSocket::ReadSocket()
 int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
 {
     int ret = write(fd, buffer, len);
-    if(ret <= 0)
+    if(ret < 0)
     {
         return C_ERR;
     }
@@ -260,8 +260,52 @@ int Net::UdpSocket::ReadSocket()
     return C_OK;
 }
 
+int Net::UdpSocket::ReadUdpSocket(struct sockaddr_in *saddr)
+{
+    if(socket_nread(fd, &querylen) == -1)
+    {
+        return C_ERR;
+    }
+
+    querybuf = new byte_t[querylen];
+    int flags = 0;
+    socklen_t from_size = sizeof(*saddr);
+    int ret = recvfrom(fd, querybuf, querylen, flags, (struct sockaddr*)saddr, &from_size);
+    if(ret < 0)
+    {
+        if(errno == EAGAIN)
+        {
+            return C_YET;
+        }
+
+        return C_ERR;
+    }
+    return C_OK;
+}
+
+int Net::UdpSocket::SendUdpSocket(struct sockaddr_in daddr, byte_t *buffer, int len)
+{
+    int flags = 0;
+    socklen_t adr_len = sizeof(daddr);
+    int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&daddr, adr_len);
+    if(ret < 0)
+    {
+        std::cout<<errno<<std::endl;
+        return C_ERR;
+    }
+
+    return C_OK;
+}
+
 int Net::UdpSocket::SendSocket(byte_t *buffer, int len)
 {
+    int flags = 0;
+    socklen_t adr_len = sizeof(sock_addr->adr); 
+    int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&sock_addr->adr, adr_len);
+    if(ret < 0)
+    {
+        return C_ERR;
+    }
     return C_OK;
 }
 

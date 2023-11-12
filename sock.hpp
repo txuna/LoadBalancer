@@ -74,9 +74,13 @@ namespace Net
     class UdpSocket : public Socket
     {
         public:
+            struct sockaddr_in client_saddr; 
+
             UdpSocket(SockAddr *adr, int _mask);
             UdpSocket(SockAddr *adr, int _mask, socket_t fd);
 
+            int ReadUdpSocket(struct sockaddr_in *saddr);
+            int SendUdpSocket(struct sockaddr_in daddr, byte_t *buffer, int len);
             virtual int ReadSocket();
             virtual int SendSocket(byte_t *buffer, int len);
             virtual ~UdpSocket();

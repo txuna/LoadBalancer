@@ -227,6 +227,7 @@ void Proxy::ProcessEvent(int retval)
                 if(client_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
                 {
                     std::cout<<"tcp relay client failed send"<<std::endl;
+                    delete []socket->querybuf;
                     continue;
                 }
 
@@ -238,10 +239,9 @@ void Proxy::ProcessEvent(int retval)
             /* UDP는 클라이언트없이 여기서 바로 하는 듯 */
             case SockType::UdpProxyServer:
             {
-                std::cout<<"Hello UDP"<<std::endl;
                 /* 오픈된 UDP서버로 패킷 도착시 종단의 UDP 서버로 전달 */
                 /* epoll이 먹히나...? */
-                if(ProcessUdpProxy(socket) == C_ERR)
+                if(ProcessUdpProxy((Net::UdpSocket*)socket) == C_ERR)
                 {
                     continue;
                 }
@@ -251,6 +251,23 @@ void Proxy::ProcessEvent(int retval)
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::UdpProxyClient:
             {
+                Net::UdpSocket *usock = (Net::UdpSocket*)socket; 
+                struct sockaddr_in saddr; 
+                if(usock->ReadUdpSocket(&saddr) == C_ERR)
+                {
+                    std::cout<<"Failed Read Socket in Udp"<<std::endl;
+                    continue;
+                }
+
+                std::cout<<ntohs(usock->client_saddr.sin_port)<<std::endl;
+                if(usock->SendUdpSocket(usock->client_saddr, usock->querybuf, usock->querylen) == C_ERR)
+                {
+                    std::cout<<"Failed Send Socket in Udp"<<std::endl;
+                    delete []socket->querybuf;
+                    continue;
+                }
+
+                delete []socket->querybuf;
                 break;
             }
 
@@ -378,11 +395,21 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
         return C_ERR;
     }
 
-    std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
+    //std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
     /* 클라이언트가 접속한 포트의 relay_port에 쏴줘야 함 새로운 커넥션 생성 */
 
     BindComponent *bc = bm->LoadBindComponent("tcp", socket->connection_port);
+    if(bc == nullptr)
+    {
+        delete []socket->querybuf;
+        return C_ERR;
+    }
     Component *comp = bc->GetRoundRobinComponent();
+    if(comp == nullptr)
+    {
+        delete []socket->querybuf;
+        return C_ERR;
+    }
 
     // connect 해야하는데 시간이 걸리지 않는감 
     // connect하고 생기는 소켓은 TcpRelayClient 
@@ -415,22 +442,70 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
     /* relay socket에 연결된 socket에게 줘야 함 */
     if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
     {
+        delete relay_socket;
         delete []socket->querybuf;
-        std::cout<<"1234"<<std::endl;
         return C_ERR;
     }
 
-    delete []socket->querybuf;
     relay_socket->connection_pair_fd = socket->fd;
-
+    delete []socket->querybuf;
+    
     return C_OK;
 }
 
-int Proxy::ProcessUdpProxy(Net::Socket *socket)
+int Proxy::ProcessUdpProxy(Net::UdpSocket *socket)
 {
+    struct sockaddr_in saddr; /* 클라이언트 주소 */
     /* UDP 클라이언트 소켓을 하나 만들고 UDP 서버에 읽은 데이터 SEND*/
     /* 그리고 클라이언트 소켓은 epoll에 등록 */
+    if(socket->ReadUdpSocket(&saddr) == C_ERR)
+    {
+        std::cout<<"[DEBUG]In UdpProxyClient Failed Read Socket"<<std::endl;
+        return C_ERR;
+    }
 
+    int bind_port = ntohs(socket->sock_addr->adr.sin_port); 
+    BindComponent *bc = bm->LoadBindComponent("udp", bind_port);
+    if(bc == nullptr)
+    {
+        std::cout<<"[DEBUG] udp Cannot found bind Component: "<<bind_port<<std::endl;
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+    Component *comp = bc->GetRoundRobinComponent();
+    if(comp == nullptr)
+    {
+        std::cout<<"[DEBUG] udp Cannot found Component: "<<std::endl;
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+
+    Net::SockAddr *addr = new Net::SockAddr(comp->addr);
+    Net::UdpSocket *relay_socket = new Net::UdpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
+
+    if(relay_socket->CreateSocket(SockType::UdpProxyClient, SOCK_DGRAM) == C_ERR)
+    {
+        delete []socket->querybuf;
+        delete relay_socket;
+        return C_ERR;
+    }
+
+    if(el.AddEvent(relay_socket) == C_ERR)
+    {
+        delete []socket->querybuf; 
+        delete relay_socket;
+        return C_ERR;
+    }
+
+    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
+    {
+        delete []socket->querybuf; 
+        delete relay_socket;
+        return C_ERR;
+    }
+
+    relay_socket->client_saddr= saddr;
+    delete []socket->querybuf;
     return C_OK;
 }
 
