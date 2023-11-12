@@ -1,17 +1,23 @@
 import threading 
 import requests
 import time
+import sys
 
-def dummy():
-    res = requests.get("http://127.0.0.1:50000")
-    print(res)
+def dummy(ip, port):
+    res = requests.get("http://{0}:{1}".format(ip, port))
+    #print(res)
+
+
+if len(sys.argv) != 3:
+    print("[USAGE] python3 dummy_client.py [Server IP] [Server Port]")
+    exit(1)
 
 task = []
 
 start = time.time()
 
-for i in range(0, 10):
-    r_thr = threading.Thread(target=dummy)
+for i in range(0, 100):
+    r_thr = threading.Thread(target=dummy, args=(sys.argv[1], sys.argv[2], ))
     task.append(r_thr)
     r_thr.start() 
     

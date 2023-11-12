@@ -4,9 +4,8 @@ import msgpack
 import struct 
 import json
 import time
+import sys
 
-LoadBalancerIP = "127.0.0.1"
-LoadBalancerPORT = 9988 
 ApiPORT = 15000
 bindPORT = 20000
 
@@ -16,12 +15,12 @@ def create_msgpack(value):
     msg = length + byte
     return msg 
 
-def register():
+def register(server_port, bind_port):
     msg = create_msgpack({
         "cmd" : "register", 
         "protocol" : "udp", 
-        "port" : bindPORT, 
-        "relay_port" : ApiPORT
+        "port" : bind_port, 
+        "relay_port" : server_port
     })
     
     return msg
@@ -34,12 +33,12 @@ def healthcheck():
     return msg
 
 
-def unregister():
+def unregister(server_port, bind_port):
     msg = create_msgpack({
         "cmd" : "unregister", 
         "protocol" : "udp", 
-        "port" : bindPORT, 
-        "relay_port" : ApiPORT
+        "port" : bind_port, 
+        "relay_port" : server_port
     })
     
     return msg
@@ -66,15 +65,16 @@ def recv_handler(client_socket):
 
             if "cmd" in response:
                 if response["cmd"] == "healthcheck":
-                    print("Health Check!")
+                    #print("Health Check!")
                     s_thr = threading.Thread(target=send_handler, args=(client_socket, healthcheck(), ))
                     s_thr.start()
                     
                 else:
-                    print("DDDD")
+                    pass
                     
             else:
-                print(response)
+                pass
+                #print(response)
                 
             
             offset = 4 + length_r[0]
@@ -82,33 +82,39 @@ def recv_handler(client_socket):
                 break; 
 
 
-def connect_server():
+def connect_server(ip, port):
     client_socket = socket(AF_INET, SOCK_STREAM)
-    client_socket.connect((LoadBalancerIP, LoadBalancerPORT))
+    client_socket.connect((ip, port))
     return client_socket
 
-def echo_server():
+def echo_server(server_port):
     server_socket = socket(AF_INET, SOCK_DGRAM)
-    address = ('localhost', ApiPORT)
+    address = ('localhost', server_port)
     server_socket.bind(address)
     
     while True:
         data, address = server_socket.recvfrom(4096)
-        print(f"수신한 데이터: {data.decode()} from {address}")
+        print(f"수신한 데이터: {data.decode()} from Client")
+        count = 0 
+        for i in range(1, 100000000):
+            count += i
         server_socket.sendto(data, address)
-        print("전송 완료")
+        #print("전송 완료")
 
 if __name__ == '__main__':
     
+    if len(sys.argv) != 5:
+        print("[Usage] python3 udp_server.py [LoadBalancer IP] [LoadBalancer Port] [API Server Port] [Bind Port(Relay)]")
+        exit(1)
     # Control Channel run 
-    client_socket = connect_server()
+    client_socket = connect_server(sys.argv[1], int(sys.argv[2]))
     
     r_thr = threading.Thread(target=recv_handler, args=(client_socket, ))
-    s_thr = threading.Thread(target=send_handler, args=(client_socket, register(), ))
+    s_thr = threading.Thread(target=send_handler, args=(client_socket, register(int(sys.argv[3]), int(sys.argv[4])), ))
     
     r_thr.start()
     s_thr.start()
     
     time.sleep(1)
     # Echo Server Run 
-    echo_server()
+    echo_server(int(sys.argv[3]))

@@ -16,7 +16,6 @@ class Proxy
     private:
         BindManager *bm;
         Epoll::EventLoop el;
-        std::vector<std::thread> proxy_threads;
         int tick = 0;
 
     public:

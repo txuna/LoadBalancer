@@ -65,6 +65,7 @@ Message *Proxy::ParseMessage(Net::Socket *socket)
 
 void Proxy::Run(int port)
 {
+    std::cout<<"Start LoadBalancer Using Port: "<<port<<std::endl;
     if(BindTcpSocket(port, SockType::BalancerProxyServer) == C_ERR)
     {
         std::cerr<<"Failed Bind Balancer Tcp Socket"<<std::endl;
@@ -170,8 +171,6 @@ void Proxy::ProcessEvent(int retval)
                     continue; 
                 }
 
-                //std::cout<<res<<std::endl;
-                /* res 전송 */
                 if(socket->SendMsgPackToSocket(res) == C_ERR)
                 {
                     DeleteSocket(socket);
@@ -186,7 +185,7 @@ void Proxy::ProcessEvent(int retval)
             {
                 if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::TcpProxyClient) == C_ERR)
                 {
-                    //DeleteSocket(socket);
+                    std::cout<<"TcpProxyServer Accept Failed"<<std::endl;
                     continue;
                 }
 
@@ -198,7 +197,8 @@ void Proxy::ProcessEvent(int retval)
             {
                 if(ProcessTcpProxy(socket) == C_ERR)
                 {
-                    //DeleteSocket(socket);
+                    std::cout<<"TcpProxyClient Process Failed"<<std::endl;
+                    DeleteSocket(socket);
                     continue;
                 }
 
@@ -217,7 +217,7 @@ void Proxy::ProcessEvent(int retval)
                     std::cout<<"tcp relay client is null"<<std::endl;
                     continue;
                 }
-
+    
                 if(socket->ReadSocket() == C_ERR)
                 {
                     std::cout<<"tcp relay client failed read"<<std::endl;
@@ -259,14 +259,14 @@ void Proxy::ProcessEvent(int retval)
                     continue;
                 }
 
-                std::cout<<ntohs(usock->client_saddr.sin_port)<<std::endl;
+                //std::cout<<ntohs(usock->client_saddr.sin_port)<<std::endl;
                 if(usock->SendUdpSocket(usock->client_saddr, usock->querybuf, usock->querylen) == C_ERR)
                 {
                     std::cout<<"Failed Send Socket in Udp"<<std::endl;
                     delete []socket->querybuf;
                     continue;
                 }
-
+                DeleteSocket(usock);
                 delete []socket->querybuf;
                 break;
             }
@@ -293,7 +293,7 @@ int Proxy::ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type)
         return C_ERR;
     }
 
-    c_socket->connection_port = socket->connection_port = GetBindPortFromSocket(socket);
+    c_socket->connection_port = GetBindPortFromSocket(socket);
 
     return C_OK;
 }
@@ -384,7 +384,6 @@ int Proxy::GetBindPortFromSocket(Net::Socket *socket)
 
 /**
  * 어떠한 바인딩된 포트와 왔는지 확인 필요
- * 그냥 편하게 스레드 사용?
 */
 int Proxy::ProcessTcpProxy(Net::Socket *socket)
 {   
@@ -394,7 +393,7 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
         std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
         return C_ERR;
     }
-
+    
     //std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
     /* 클라이언트가 접속한 포트의 relay_port에 쏴줘야 함 새로운 커넥션 생성 */
 
@@ -411,7 +410,6 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
         return C_ERR;
     }
 
-    // connect 해야하는데 시간이 걸리지 않는감 
     // connect하고 생기는 소켓은 TcpRelayClient 
     Net::SockAddr *addr = new Net::SockAddr(comp->addr); /* 서버의 주소 정보 */
     Net::TcpSocket *relay_socket = new Net::TcpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
@@ -485,19 +483,21 @@ int Proxy::ProcessUdpProxy(Net::UdpSocket *socket)
 
     if(relay_socket->CreateSocket(SockType::UdpProxyClient, SOCK_DGRAM) == C_ERR)
     {
+        std::cout<<"[DEBUG] udp Failed Create Socket"<<std::endl;
         delete []socket->querybuf;
         delete relay_socket;
         return C_ERR;
     }
 
-    if(el.AddEvent(relay_socket) == C_ERR)
+    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
     {
+        std::cout<<"[DEBUG] udp Failed SendSocket"<<std::endl;
         delete []socket->querybuf; 
         delete relay_socket;
         return C_ERR;
     }
 
-    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
+    if(el.AddEvent(relay_socket) == C_ERR)
     {
         delete []socket->querybuf; 
         delete relay_socket;
@@ -511,10 +511,5 @@ int Proxy::ProcessUdpProxy(Net::UdpSocket *socket)
 
 Proxy::~Proxy()
 {
-    for(auto &t: proxy_threads)
-    {
-        t.join();
-    }
-
     delete bm;
 }

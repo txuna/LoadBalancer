@@ -99,7 +99,7 @@ int Epoll::EventLoop::FetchEvent()
     struct epoll_event ees[MAX_EVENT_SIZE];
     struct timeval tvp;
     tvp.tv_sec = 0;
-    tvp.tv_usec = 100;
+    tvp.tv_usec = 10;
     int retval = epoll_wait(epfd, ees, MAX_EVENT_SIZE, tvp.tv_usec);
     
     if(retval <= 0)

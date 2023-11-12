@@ -5,12 +5,7 @@ import msgpack
 import struct 
 import json
 import time
-
-LoadBalancerIP = "127.0.0.1"
-LoadBalancerPORT = 9988 
-ApiPORT = 40000
-bindPORT = 50000
-
+import sys
 
 app = Flask(__name__)
 
@@ -29,12 +24,12 @@ def create_msgpack(value):
     msg = length + byte
     return msg 
 
-def register():
+def register(server_port, bind_port):
     msg = create_msgpack({
         "cmd" : "register", 
         "protocol" : "tcp", 
-        "port" : bindPORT, 
-        "relay_port" : ApiPORT
+        "port" : bind_port, 
+        "relay_port" : server_port
     })
     
     return msg
@@ -47,12 +42,12 @@ def healthcheck():
     return msg
 
 
-def unregister():
+def unregister(server_port, bind_port):
     msg = create_msgpack({
         "cmd" : "unregister", 
         "protocol" : "tcp", 
-        "port" : bindPORT, 
-        "relay_port" : ApiPORT
+        "port" : server_port, 
+        "relay_port" : bind_port
     })
     
     return msg
@@ -79,15 +74,13 @@ def recv_handler(client_socket):
 
             if "cmd" in response:
                 if response["cmd"] == "healthcheck":
-                    print("Health Check!")
+                    #print("Health Check!")
                     s_thr = threading.Thread(target=send_handler, args=(client_socket, healthcheck(), ))
                     s_thr.start()
                     
-                else:
-                    print("DDDD")
-                    
             else:
-                print(response)
+                pass
+                #print(response)
                 
             
             offset = 4 + length_r[0]
@@ -95,23 +88,27 @@ def recv_handler(client_socket):
                 break; 
 
 
-def connect_server():
+def connect_server(ip, port):
     client_socket = socket(AF_INET, SOCK_STREAM)
-    client_socket.connect((LoadBalancerIP, LoadBalancerPORT))
+    client_socket.connect((ip, port))
     return client_socket
         
 
 if __name__ == '__main__':
     
+    if len(sys.argv) != 5:
+        print("[Usage] python3 api_server.py [LoadBalancer IP] [LoadBalancer Port] [API Server Port] [Bind Port(Relay)]")
+        exit(1)
+        
     # Control Channel run 
-    client_socket = connect_server()
+    client_socket = connect_server(sys.argv[1], int(sys.argv[2]))
     
     r_thr = threading.Thread(target=recv_handler, args=(client_socket, ))
-    s_thr = threading.Thread(target=send_handler, args=(client_socket, register(), ))
+    s_thr = threading.Thread(target=send_handler, args=(client_socket, register(int(sys.argv[3]), int(sys.argv[4])), ))
     
     r_thr.start()
     s_thr.start()
     
     time.sleep(1)
     # Flask run 
-    app.run(host='0.0.0.0', port=ApiPORT)
+    app.run(host='localhost', port=int(sys.argv[3]))

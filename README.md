@@ -1,8 +1,11 @@
 # Load Balancer for C/C++ 
-바인딩된 포트로의 요청시 연결된 컴포넌트에 적절하게 패킷을 분배하는 로드밸런서입니다. 
+로드밸런서의 프론트엔드입니다. 로드밸런싱을 필요로 하는 여러 Tcp 서버나 Udp 서버에 패킷을 라운드로빈 형식으로 전달합니다. 
 
 # Architecture
-blah blah ~  
+다중 소켓통신에 있어 스레딩 모델과 다중 입출력 모델이 존재할 수 있습니다. 스레딩 모델의 경우 아키텍쳐 레벨에서는 간단하게 보일지라도 동기화 매커니즘에 있어 매우 복잡하기에 아키텍쳐 레벨에서는 복잡할 수 있어도 구현에 간단한 이점을 가질 수 있도록 스레드를 사용하지 않고 모든 논블럭 소켓(tcp, udp)을 EPOLL을 통해 관리할 수 있도록 구현했습니다. 
+
+
+
 
 # Control Channel
 - Register 
@@ -40,14 +43,160 @@ relay_port : 로드밸런서가 동작하는 머신에서 바인딩할 포트
 5초마다 연결된 서버들에게 보내는 상태 메시지 
 
 # Dependency
-blah blah ~
+- Python 3.10 이상 
+- pip 패키지 관리 도구
+- make 4.3 
+- g++ 11.4.0 
 
-# Usage
+```Shell
+pip install flask 
+pip install requests
 ```
+
+# Run
+### Load Balancer 실행
+```Shell
 git clone https://github.com/txuna/LoadBalancer.git
 cd LoadBalancer 
 make 
+
+./lander [포트번호]
 ```
 
-# Example 
-blah blah ~
+### Flask 서버 실행
+```Shell
+cd LoadBalancer/clients
+python3 api_server.py [LoadBalancer IP] [LoadBalancer Port] [API Server Port] [Bind Port(Relay)]
+```
+
+### UDP Echo 서버 실행 
+```Shell
+cd LoadBalancer/clients
+python3 udp_server.py [LoadBalancer IP] [LoadBalancer Port] [API Server Port] [Bind Port(Relay)]
+```
+
+### Tcp 테스트 클라이언트 실행 
+```Shell
+cd LoadBalancer/clients
+python3 dummy_client.py [Server IP] [Server Port]
+```
+
+### Udp 테스트 클라이언트 실행 
+```Shell
+cd LoadBalancer/clients
+python3 udp_dummpy_client.py [Server IP] [Server Port]
+```
+
+# Result 
+### Controll Channel 
+- 로드밸런싱 서버 실행
+![Alt text](./images/image.png)
+
+- Flask 서버 추가(로드밸런서 머신 바인드 포트(50000), Flask 서버 포트(40000))
+![Alt text](./images/image-2.png)
+
+- Flask 서버 증설(로드밸런서 머신 바인드 포트(50000), Flask 서버 포트(30000))
+![Alt text](./images/image-3.png)
+
+- UDP 서버 추가(로드밸런서 머신 바인드 포트(20000), Echo 서버 포트(15000))
+![Alt text](./images/image-4.png)
+
+- 등록 결과 
+![Alt text](./images/image-8.png)
+![Alt text](./images/image-6.png)
+![Alt text](./images/image-7.png)
+
+
+### Bind Port 
+- 바인딩 포트 결과
+![Alt text](./images/image-5.png)
+1. 로드밸런서 TCP 9988 오픈 성공 
+2. Flask 서버 TCP 40000 오픈 성공 및 로드밸런서 바인딩 포트 50000포트 오픈 성공 
+3. Flask 서버 TCP 30000 오픈 성공 및 바인딩 컴포넌트 추가 성공 
+4. Udp Echo 서버 UDP 15000 오픈 성공 및 로드밸런서 바인딩 포트 20000포트 오픈 성공 
+
+# Relay 
+현재 1대의 UDP서버와 2대의 Flask서버 연결
+###  Flask 테스트  
+- Client  
+서버로 3개의 요청을 보냄 
+![Alt text](./images/image-9.png)
+
+- Server   
+1번 서버에 2개의 요청, 2번 서버에 1개의 요청으로 라운드로빈이 됨
+![Alt text](./images/image-10.png)
+![Alt text](./images/image-11.png)
+
+
+### Udp Echo 테스트 
+- Client  
+서버로 10개의 요청을 보냄  
+![Alt text](./images/image-12.png)
+
+- Server  
+1번 서버에 5개의 요청, 2번 서버에도 5개의 요청 라운드로빈 됨 
+![Alt text](./images/image-15.png)
+![Alt text](./images/image-16.png)
+
+# Performance 
+```Python
+for i in range(1, 100000000):
+    count += i
+```
+서버들은 반복문으로 1~3초 정도 걸리는 덧셈 연산을 수행하고 클라이언트에게 던져줍니다. 로드밸런싱에 추가한 서버와 1~1000개의 더미 클라이언트를 실행하여 속도를 체크합니다. 
+
+### Flask API Server
+1. 서버 1대 - 클라이언트 10개의 요청
+![Alt text](./images/image-17.png)
+
+2. 서버 1대 - 클라이언트 100개의 요청 
+![Alt text](./images/image-20.png)
+
+3. 서버 2대 - 클라이언트 10개의 요청 
+![Alt text](./images/image-18.png)
+
+4. 서버 2대 - 클라이언트 100개의 요청 
+![Alt text](./images/image-19.png)
+
+5. 서버 4대 - 클라이언트 10개의 요청 
+![Alt text](./images/image-27.png)
+
+6. 서버 4대 - 클라이언트 100개의 요청
+![Alt text](./images/image-28.png)
+
+### Udp Echo Server
+1. 서버 1대 - 클라이언트 10개의 요청 
+![Alt text](./images/image-21.png)
+
+2. 서버 1대 - 클라이언트 100개의 요청 
+![Alt text](./images/image-22.png)
+
+3. 서버 2대 - 클라이언트 10개의 요청 
+![Alt text](./images/image-24.png)
+
+4. 서버 2대 - 클라이언트 100개의 요청
+![Alt text](./images/image-23.png)
+
+6. 서버 4대 - 클라이언트 10개의 요청
+![Alt text](./images/image-26.png)
+
+5. 서버 4대 - 클라이언트 100개의 요청 
+![Alt text](./images/image-25.png)
+
+### 요청 클라이언트 10개 - 표
+|프로토콜|서버1대|서버2대|서버4대|
+|------|---|---|---|
+|TCP|25초|13초|14초|
+|UDP|26초|15초|14초|
+
+### 요청 클라이언트 100개 - 표
+|프로토콜|서버1대|서버2대|서버4대|
+|------|---|---|---|
+|TCP|316초|163초|171초|
+|UDP|270초|165초|161초|
+
+# Comment 
+로드밸런서 테스트 결과 추가되는 서버수에 따라 1개에서 2개로는 2배 이상의 시간을 절약하지만 TCP와 UDP 모두 3개 4개 이상의 경우 시간적인 효과는 확인할 수 없었음   
+아마 아키텍쳐의 문제거나 테스트코드의 문제로 예상중
+
+

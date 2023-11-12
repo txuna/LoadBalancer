@@ -83,22 +83,26 @@ int Net::Socket::CreateSocket(int _sock_type, int _protocol)
     this->fd = socket(PF_INET, _protocol, 0);
     if(this->fd == -1)
     {
+        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
     int on = 1;
     if(setsockopt(this->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
     {
+        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
     if((flags = fcntl(this->fd, F_GETFL, 0)) == -1)
     {
+        std::cout<<errno<<std::endl;
         return C_ERR;
     }
     
     if(fcntl(this->fd, F_SETFL, flags | O_NONBLOCK) == -1)
     {
+        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
@@ -290,7 +294,10 @@ int Net::UdpSocket::SendUdpSocket(struct sockaddr_in daddr, byte_t *buffer, int 
     int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&daddr, adr_len);
     if(ret < 0)
     {
-        std::cout<<errno<<std::endl;
+        if(errno == EAGAIN)
+        {
+            return C_OK;
+        }
         return C_ERR;
     }
 
@@ -304,6 +311,10 @@ int Net::UdpSocket::SendSocket(byte_t *buffer, int len)
     int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&sock_addr->adr, adr_len);
     if(ret < 0)
     {
+        if(errno == EAGAIN)
+        {
+            return C_OK;
+        }
         return C_ERR;
     }
     return C_OK;
