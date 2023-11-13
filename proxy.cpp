@@ -444,17 +444,17 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
         return C_ERR;
     }
 
-    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
+    if(el.AddEvent(relay_socket) == C_ERR)
     {
-        //DeleteSocket(relay_socket);
         delete relay_socket;
         delete []socket->querybuf;
         return C_ERR;
     }
 
-    if(el.AddEvent(relay_socket) == C_ERR)
+    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
     {
-        delete relay_socket;
+        DeleteSocket(relay_socket);
+        //delete relay_socket;
         delete []socket->querybuf;
         return C_ERR;
     }

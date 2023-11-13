@@ -97,13 +97,13 @@ python3 udp_server.py [LoadBalancer IP] [LoadBalancer Port] [API Server Port] [B
 ### Tcp 테스트 클라이언트 실행 
 ```Shell
 cd LoadBalancer/clients
-python3 dummy_client.py [Server IP] [Server Port]
+python3 dummy_client.py [Server IP] [Server Port] [num of request]
 ```
 
 ### Udp 테스트 클라이언트 실행 
 ```Shell
 cd LoadBalancer/clients
-python3 udp_dummpy_client.py [Server IP] [Server Port]
+python3 udp_dummpy_client.py [Server IP] [Server Port] [num of request]
 ```
 
 # Result 
