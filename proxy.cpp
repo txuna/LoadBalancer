@@ -138,7 +138,7 @@ void Proxy::ProcessEvent(int retval)
         */
         if(e.mask != EPOLLIN)
         {
-            std::cout<<"[DEBUG] Client disconnected"<<std::endl;
+            //std::cout<<"[DEBUG] Client disconnected"<<std::endl;
             DeleteSocket(socket);
             continue;
         }

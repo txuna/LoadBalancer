@@ -94,10 +94,7 @@ def echo_server(server_port):
     
     while True:
         data, address = server_socket.recvfrom(4096)
-        print(f"수신한 데이터: {data.decode()} from Client")
-        count = 0 
-        for i in range(1, 100):
-            count += i
+        #print(f"수신한 데이터: {data.decode()} from Client")
         server_socket.sendto(data, address)
         #print("전송 완료")
 

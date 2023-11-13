@@ -9,13 +9,19 @@ import sys
 
 app = Flask(__name__)
 
+test_data = {
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+}
+
 @app.route('/')
-def hello_world():
-    count = 0 
-    for i in range(1, 100):
-        count += i
-    
-    return str(count)
+def hello_world():    
+    return str(test_data)
 
 
 def create_msgpack(value):

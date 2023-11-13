@@ -10,7 +10,7 @@ def dummy(ip, port, index):
         print("[Error] disconnected from server: "+ str(index)+" thread")
         return 
     
-    print("[LOG] Get Data from server: "+ str(index)+" thread")
+    print("[Log] Get Data from server: "+ str(index)+" thread")
 
 
 if len(sys.argv) != 4:
