@@ -194,11 +194,16 @@ void Proxy::ProcessEvent(int retval)
 
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::TcpProxyClient:
-            {
-                if(ProcessTcpProxy(socket) == C_ERR)
+            {   
+                int ret = ProcessTcpProxy(socket);
+                if(ret == C_ERR)
                 {
                     std::cout<<"TcpProxyClient Process Failed"<<std::endl;
                     DeleteSocket(socket);
+                    continue;
+                }
+                else if(ret == C_YET)
+                {
                     continue;
                 }
 
@@ -217,10 +222,16 @@ void Proxy::ProcessEvent(int retval)
                     std::cout<<"tcp relay client is null"<<std::endl;
                     continue;
                 }
-    
-                if(socket->ReadSocket() == C_ERR)
+
+                int ret = socket->ReadSocket();
+                if(ret == C_ERR)
                 {
                     std::cout<<"tcp relay client failed read"<<std::endl;
+                    continue;
+                }
+
+                if(ret == C_YET)
+                {
                     continue;
                 }
 
@@ -388,10 +399,16 @@ int Proxy::GetBindPortFromSocket(Net::Socket *socket)
 int Proxy::ProcessTcpProxy(Net::Socket *socket)
 {   
     /* ReadSocket 후 버퍼 비우기 필수 */
-    if(socket->ReadSocket() == C_ERR)
+    int ret = socket->ReadSocket();
+    if(ret == C_ERR)
     {
         std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
         return C_ERR;
+    }
+
+    if(ret == C_YET)
+    {
+        return C_YET;
     }
     
     //std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
@@ -427,24 +444,21 @@ int Proxy::ProcessTcpProxy(Net::Socket *socket)
         return C_ERR;
     }
 
+    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
+    {
+        //DeleteSocket(relay_socket);
+        delete relay_socket;
+        delete []socket->querybuf;
+        return C_ERR;
+    }
+
     if(el.AddEvent(relay_socket) == C_ERR)
     {
         delete relay_socket;
         delete []socket->querybuf;
         return C_ERR;
     }
-
-    /* 보내고 epoll_wait을 통해 데이터를 받았을 때 어디로 보내야 하는가 */
-    /* 인자로 주어진 socket에게 줘야하는데 어떻게? */
-
-    /* relay socket에 연결된 socket에게 줘야 함 */
-    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
-    {
-        delete relay_socket;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-
+    
     relay_socket->connection_pair_fd = socket->fd;
     delete []socket->querybuf;
     

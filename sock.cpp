@@ -151,7 +151,7 @@ int Net::TcpSocket::ReadSocket()
         return C_ERR;
     }
     
-    querybuf = new byte_t[querylen];
+    querybuf = new byte_t[querylen+1];
     int ret = read(fd, querybuf, querylen);
     if(ret < 0)
     {

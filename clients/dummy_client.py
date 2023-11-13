@@ -16,7 +16,7 @@ task = []
 
 start = time.time()
 
-for i in range(0, 10):
+for i in range(0, 10000):
     r_thr = threading.Thread(target=dummy, args=(sys.argv[1], sys.argv[2], ))
     task.append(r_thr)
     r_thr.start() 
