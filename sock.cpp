@@ -168,13 +168,38 @@ int Net::TcpSocket::ReadSocket()
 
 int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
 {
+    while(true)
+    {
+        int ret = write(fd, buffer, len);
+        if(ret < 0)
+        {
+            if(errno == EAGAIN)
+            {
+                continue;
+            }
+            return C_ERR;
+        }
+
+        break;
+    }
+    return C_OK;
+}
+
+/*
+int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
+{
     int ret = write(fd, buffer, len);
     if(ret < 0)
     {
+        if(errno == EAGAIN)
+        {
+            return C_YET;
+        }
         return C_ERR;
     }
     return C_OK;
 }
+*/
 
 int Net::TcpSocket::ListenSocket()
 {

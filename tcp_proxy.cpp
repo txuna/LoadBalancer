@@ -77,12 +77,12 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
     ret = relay_socket->SendSocket(socket->querybuf, socket->querylen);
     if(ret == C_ERR)
     {
-        std::cout<<"F: "<<errno<<std::endl;
         delete []socket->querybuf;
         delete relay_socket;
         return C_ERR;
     }
 
+    // 쓰기 가능하면 
     if(ret == C_YET)
     {
         delete []socket->querybuf; 
@@ -133,6 +133,7 @@ int TcpProxy::TcpSendToClient(Net::TcpSocket *socket)
         return C_ERR;
     }
 
+    // 쓰기 가능하면 
     else if(ret == C_YET)
     {
         delete []socket->querybuf;
