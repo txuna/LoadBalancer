@@ -5,13 +5,23 @@
 
 Proxy::Proxy()
 {
-    bm = new BindManager();
-
     if(el.CreateEventLoop() == C_ERR)
     {
         std::cerr<<"Failed CreateEventLoop for Balancer"<<std::endl;
         return;
     }
+    try
+    {
+        bm = new BindManager();
+        tcp_proxy = new TcpProxy(&el, bm);
+        udp_proxy = new UdpProxy(&el, bm);
+    }
+    catch(std::exception& e)
+    {
+        std::cout<<"Failed Run Proxy"<<std::endl;
+        return;
+    }
+    
 }
 
 // bind목록 컴포넌트 목록등 확인하여 제거 필요
@@ -150,7 +160,7 @@ void Proxy::ProcessEvent(int retval)
             /* 컴포넌트 소켓 추가 */
             case SockType::BalancerProxyServer:
             {
-                if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::BalancerProxyClient) == C_ERR)
+                if(tcp_proxy->TcpClientAccept((Net::TcpSocket*)socket, SockType::BalancerProxyClient) == C_ERR)
                 {
                     continue;
                 }
@@ -183,9 +193,8 @@ void Proxy::ProcessEvent(int retval)
             /* 연결된 TCP 서버로 릴레이 */
             case SockType::TcpProxyServer:
             {
-                if(ProcessAccept((Net::TcpSocket*)socket, e.mask, SockType::TcpProxyClient) == C_ERR)
+                if(tcp_proxy->TcpClientAccept((Net::TcpSocket*)socket, SockType::TcpProxyClient) == C_ERR)
                 {
-                    std::cout<<"TcpProxyServer Accept Failed"<<std::endl;
                     continue;
                 }
 
@@ -195,19 +204,17 @@ void Proxy::ProcessEvent(int retval)
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::TcpProxyClient:
             {   
-                int ret = ProcessTcpProxy(socket);
+                int ret = tcp_proxy->TcpSendToRealServer(socket);
                 if(ret == C_ERR)
                 {
-                    std::cout<<"[Log] TcpProxyClient Process Failed: "<<socket->fd<<std::endl;
                     DeleteSocket(socket);
                     continue;
                 }
+
                 else if(ret == C_YET)
                 {
                     continue;
                 }
-
-                std::cout<<"[Log] [TCP Process Client -> Server] FD: "<<socket->fd<<std::endl;
                 break;
             }
 
@@ -216,35 +223,26 @@ void Proxy::ProcessEvent(int retval)
             /* connection_pair_fd는 로드밸런서에 연결 시도한 사용자 */
             case SockType::TcpRelayClient:
             {
-                int client_fd = ((Net::TcpSocket*)socket)->connection_pair_fd;
-                Net::Socket *client_socket = el.LoadSocket(client_fd);
-                if(client_socket == nullptr)
-                {
-                    std::cout<<"tcp relay client is null"<<std::endl;
-                    continue;
-                }
-
-                int ret = socket->ReadSocket();
+                int ret = tcp_proxy->TcpSendToClient((Net::TcpSocket *)socket);
                 if(ret == C_ERR)
                 {
-                    std::cout<<"tcp relay client failed read"<<std::endl;
+                    DeleteSocket(socket);
+
+                    int cfd = ((Net::TcpSocket *)socket)->connection_pair_fd;
+                    Net::Socket *client_socket = el.LoadSocket(cfd);
+                    if(client_socket != nullptr)
+                    {
+                        DeleteSocket(client_socket);
+                    }
+
                     continue;
                 }
 
-                if(ret == C_YET)
+                else if(ret == C_YET)
                 {
-                    continue;
+
                 }
 
-                if(client_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
-                {
-                    std::cout<<"tcp relay client failed send"<<std::endl;
-                    delete []socket->querybuf;
-                    continue;
-                }
-
-                std::cout<<"[Log] [TCP Process Client <- Server] FD: "<<client_socket->fd<<std::endl;
-                delete []socket->querybuf;
                 break;
             }
 
@@ -252,40 +250,24 @@ void Proxy::ProcessEvent(int retval)
             /* UDP는 클라이언트없이 여기서 바로 하는 듯 */
             case SockType::UdpProxyServer:
             {
-                /* 오픈된 UDP서버로 패킷 도착시 종단의 UDP 서버로 전달 */
-                /* epoll이 먹히나...? */
-                if(ProcessUdpProxy((Net::UdpSocket*)socket) == C_ERR)
+                int ret = udp_proxy->UdpSendToRealServer((Net::UdpSocket*)socket);
+                if(ret == C_ERR)
                 {
                     continue;
                 }
-
-                std::cout<<"[Log] [UDP Process Client -> Server] FD: "<<socket->fd<<std::endl;
-
                 break;
             }
 
             /* 컴포넌트에 접근하기를 원하는 외부 요청 */
             case SockType::UdpProxyClient:
             {
-                Net::UdpSocket *usock = (Net::UdpSocket*)socket; 
-                struct sockaddr_in saddr; 
-                if(usock->ReadUdpSocket(&saddr) == C_ERR)
+                int ret = udp_proxy->UdpSendToClient((Net::UdpSocket*)socket);
+                if(ret == C_ERR)
                 {
-                    std::cout<<"Failed Read Socket in Udp"<<std::endl;
-                    continue;
+                    std::cout<<"[Log] Failed UDP Process"<<std::endl;
                 }
 
-                //std::cout<<ntohs(usock->client_saddr.sin_port)<<std::endl;
-                if(usock->SendUdpSocket(usock->client_saddr, usock->querybuf, usock->querylen) == C_ERR)
-                {
-                    std::cout<<"Failed Send Socket in Udp"<<std::endl;
-                    delete []socket->querybuf;
-                    continue;
-                }
-
-                std::cout<<"[Log] [UDP Process Client <- Server] FD: "<<usock->fd<<std::endl;
-                DeleteSocket(usock);
-                delete []socket->querybuf;
+                DeleteSocket(socket);
                 break;
             }
 
@@ -295,25 +277,6 @@ void Proxy::ProcessEvent(int retval)
     }
 
     delete el.fired;
-}
-
-int Proxy::ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type)
-{
-    Net::TcpSocket *c_socket = socket->AcceptSocket(sock_type);
-    if(c_socket == nullptr)
-    {
-        return C_ERR;
-    }
-
-    if(el.AddEvent(c_socket) == C_ERR)
-    {
-        delete c_socket;
-        return C_ERR;
-    }
-
-    c_socket->connection_port = GetBindPortFromSocket(socket);
-
-    return C_OK;
 }
 
 /**
@@ -395,142 +358,20 @@ std::tuple<int, json> Proxy::ProcessControlChannel(Net::Socket *socket)
     return std::make_tuple(C_OK, res);
 }
 
-int Proxy::GetBindPortFromSocket(Net::Socket *socket)
-{
-    return ntohs(socket->sock_addr->adr.sin_port);
-}
-
-/**
- * 어떠한 바인딩된 포트와 왔는지 확인 필요
-*/
-int Proxy::ProcessTcpProxy(Net::Socket *socket)
-{   
-    /* ReadSocket 후 버퍼 비우기 필수 */
-    int ret = socket->ReadSocket();
-    if(ret == C_ERR)
-    {
-        std::cout<<"In TcpProxyClient Failed Read Socket"<<std::endl;
-        return C_ERR;
-    }
-
-    if(ret == C_YET)
-    {
-        return C_YET;
-    }
-    
-    //std::cout<<"Connection Port: "<<socket->connection_port<<std::endl;
-    /* 클라이언트가 접속한 포트의 relay_port에 쏴줘야 함 새로운 커넥션 생성 */
-
-    BindComponent *bc = bm->LoadBindComponent("tcp", socket->connection_port);
-    if(bc == nullptr)
-    {
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-    Component *comp = bc->GetRoundRobinComponent();
-    if(comp == nullptr)
-    {
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-
-    // connect하고 생기는 소켓은 TcpRelayClient 
-    Net::SockAddr *addr = new Net::SockAddr(comp->addr); /* 서버의 주소 정보 */
-    Net::TcpSocket *relay_socket = new Net::TcpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
-    if(relay_socket->CreateSocket(SockType::TcpRelayClient, SOCK_STREAM) == C_ERR)
-    {
-        delete relay_socket;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-    
-    if(relay_socket->ConnectSocket() == C_ERR)
-    {
-        delete relay_socket;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-
-    if(el.AddEvent(relay_socket) == C_ERR)
-    {
-        delete relay_socket;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-
-    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
-    {
-        DeleteSocket(relay_socket);
-        //delete relay_socket;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-    
-    relay_socket->connection_pair_fd = socket->fd;
-    delete []socket->querybuf;
-    
-    return C_OK;
-}
-
-int Proxy::ProcessUdpProxy(Net::UdpSocket *socket)
-{
-    struct sockaddr_in saddr; /* 클라이언트 주소 */
-    /* UDP 클라이언트 소켓을 하나 만들고 UDP 서버에 읽은 데이터 SEND*/
-    /* 그리고 클라이언트 소켓은 epoll에 등록 */
-    if(socket->ReadUdpSocket(&saddr) == C_ERR)
-    {
-        std::cout<<"[DEBUG]In UdpProxyClient Failed Read Socket"<<std::endl;
-        return C_ERR;
-    }
-
-    int bind_port = ntohs(socket->sock_addr->adr.sin_port); 
-    BindComponent *bc = bm->LoadBindComponent("udp", bind_port);
-    if(bc == nullptr)
-    {
-        std::cout<<"[DEBUG] udp Cannot found bind Component: "<<bind_port<<std::endl;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-    Component *comp = bc->GetRoundRobinComponent();
-    if(comp == nullptr)
-    {
-        std::cout<<"[DEBUG] udp Cannot found Component: "<<std::endl;
-        delete []socket->querybuf;
-        return C_ERR;
-    }
-
-    Net::SockAddr *addr = new Net::SockAddr(comp->addr);
-    Net::UdpSocket *relay_socket = new Net::UdpSocket(addr, EPOLLIN | EPOLLHUP | EPOLLRDHUP | EPOLLERR);
-
-    if(relay_socket->CreateSocket(SockType::UdpProxyClient, SOCK_DGRAM) == C_ERR)
-    {
-        std::cout<<"[DEBUG] udp Failed Create Socket"<<std::endl;
-        delete []socket->querybuf;
-        delete relay_socket;
-        return C_ERR;
-    }
-
-    if(relay_socket->SendSocket(socket->querybuf, socket->querylen) == C_ERR)
-    {
-        std::cout<<"[DEBUG] udp Failed SendSocket"<<std::endl;
-        delete []socket->querybuf; 
-        delete relay_socket;
-        return C_ERR;
-    }
-
-    if(el.AddEvent(relay_socket) == C_ERR)
-    {
-        delete []socket->querybuf; 
-        delete relay_socket;
-        return C_ERR;
-    }
-
-    relay_socket->client_saddr= saddr;
-    delete []socket->querybuf;
-    return C_OK;
-}
-
 Proxy::~Proxy()
 {
-    delete bm;
+    if(bm != nullptr)
+    {
+        delete bm;
+    }
+
+    if(tcp_proxy != nullptr)
+    {
+        delete tcp_proxy;
+    }
+
+    if(udp_proxy != nullptr)
+    {
+        delete udp_proxy;
+    }
 }

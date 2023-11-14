@@ -29,10 +29,19 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    Proxy *proxy = new Proxy();
-    proxy->Run(port);
+    try
+    {
+        Proxy *proxy = new Proxy();
+        proxy->Run(port);
 
-    delete proxy;
+        delete proxy;
+    }
+    catch(std::exception& e)
+    {
+        std::cout<<"Bad Alloc"<<std::endl; 
+        return 1;
+    }
+    
     return 0;
 }
 

@@ -296,7 +296,7 @@ int Net::UdpSocket::SendUdpSocket(struct sockaddr_in daddr, byte_t *buffer, int 
     {
         if(errno == EAGAIN)
         {
-            return C_OK;
+            return C_YET;
         }
         return C_ERR;
     }
@@ -313,7 +313,7 @@ int Net::UdpSocket::SendSocket(byte_t *buffer, int len)
     {
         if(errno == EAGAIN)
         {
-            return C_OK;
+            return C_YET;
         }
         return C_ERR;
     }

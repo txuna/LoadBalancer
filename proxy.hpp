@@ -5,6 +5,8 @@
 #include "component.hpp"
 #include "epoll_event.hpp"
 #include "message.hpp"
+#include "tcp_proxy.hpp"
+#include "udp_proxy.hpp"
 
 #include <thread>
 #include <tuple>
@@ -14,7 +16,9 @@ typedef std::chrono::high_resolution_clock time_clock;
 class Proxy
 {
     private:
-        BindManager *bm;
+        BindManager *bm = nullptr;
+        TcpProxy *tcp_proxy = nullptr;
+        UdpProxy *udp_proxy = nullptr;
         Epoll::EventLoop el;
         int tick = 0;
 
@@ -26,14 +30,10 @@ class Proxy
         void ProcessEvent(int retval);
         int BindTcpSocket(int port, int sock_type);
         int BindUdpSocket(int port, int sock_type);
-        int ProcessAccept(Net::TcpSocket *socket, int mask, int sock_type);
         int DeleteSocket(Net::Socket *socket);
-        int GetBindPortFromSocket(Net::Socket *socket);
         Message *ParseMessage(Net::Socket *socket);
 
         std::tuple<int, json> ProcessControlChannel(Net::Socket *socket);
-        int ProcessTcpProxy(Net::Socket *socket);
-        int ProcessUdpProxy(Net::UdpSocket *socket);
         void SendHealthCheck();
 };
 
