@@ -82,14 +82,6 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
         return C_ERR;
     }
 
-    // 쓰기 가능하면 
-    if(ret == C_YET)
-    {
-        delete []socket->querybuf; 
-        delete relay_socket;
-        return C_YET;
-    }
-
     if(el->AddEvent(relay_socket) == C_ERR)
     {   
         delete []socket->querybuf;
@@ -131,13 +123,6 @@ int TcpProxy::TcpSendToClient(Net::TcpSocket *socket)
     {
         delete []socket->querybuf;
         return C_ERR;
-    }
-
-    // 쓰기 가능하면 
-    else if(ret == C_YET)
-    {
-        delete []socket->querybuf;
-        return C_YET;
     }
 
     delete []socket->querybuf;
