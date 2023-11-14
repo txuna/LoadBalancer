@@ -87,17 +87,20 @@ int UdpProxy::UdpSendToClient(Net::UdpSocket *relay_socket)
     int ret = relay_socket->ReadUdpSocket(&saddr);
     if(ret == C_ERR)
     {
+        std::cout<<"ERROR READ"<<std::endl;
         return C_ERR;
     }
 
     else if(ret == C_YET)
     {
+        std::cout<<"EAGAIN READ"<<std::endl;
         return C_YET;
     }
 
     ret = relay_socket->SendUdpSocket(relay_socket->client_saddr, relay_socket->querybuf, relay_socket->querylen);
     if(ret == C_ERR)
     {
+        std::cout<<"ERROR SEND"<<std::endl;
         delete []relay_socket->querybuf;
         return C_ERR;
     }
