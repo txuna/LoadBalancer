@@ -102,13 +102,12 @@ int UdpProxy::UdpSendToClient(Net::UdpSocket *relay_socket)
         return C_ERR;
     }
 
-    /*
     else if(ret == C_YET)
     {
         delete []relay_socket->querybuf;
+        std::cout<<"EAGAIN SEND"<<std::endl;
         return C_YET;
     }
-    */
 
     delete []relay_socket->querybuf;
     return C_OK;
