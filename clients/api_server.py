@@ -10,8 +10,10 @@ import sys
 app = Flask(__name__)
 
 @app.route('/')
-def hello_world():    
-    time.sleep(1)
+def hello_world():  
+    count = 0  
+    for i in range(0, 10000000):
+        count += i
     return "Welcome Flask appllication!"
 
 
