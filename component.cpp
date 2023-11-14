@@ -153,8 +153,6 @@ Component* BindComponent::GetRoundRobinComponent()
         index = 0;
     }
 
-    std::cout<<index<<std::endl;
-
     Component *rc = comps[index];
     index += 1;
     return rc;

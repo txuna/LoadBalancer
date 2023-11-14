@@ -185,21 +185,6 @@ int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
     return C_OK;
 }
 
-/*
-int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
-{
-    int ret = write(fd, buffer, len);
-    if(ret < 0)
-    {
-        if(errno == EAGAIN)
-        {
-            return C_YET;
-        }
-        return C_ERR;
-    }
-    return C_OK;
-}
-*/
 
 int Net::TcpSocket::ListenSocket()
 {
@@ -316,14 +301,19 @@ int Net::UdpSocket::SendUdpSocket(struct sockaddr_in daddr, byte_t *buffer, int 
 {
     int flags = 0;
     socklen_t adr_len = sizeof(daddr);
-    int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&daddr, adr_len);
-    if(ret < 0)
+    while(true)
     {
-        if(errno == EAGAIN)
+        int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&daddr, adr_len);
+        if(ret < 0)
         {
-            return C_YET;
+            if(errno == EAGAIN)
+            {
+                continue;
+            }
+            return C_ERR;
         }
-        return C_ERR;
+
+        break;
     }
 
     return C_OK;
@@ -333,14 +323,19 @@ int Net::UdpSocket::SendSocket(byte_t *buffer, int len)
 {
     int flags = 0;
     socklen_t adr_len = sizeof(sock_addr->adr); 
-    int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&sock_addr->adr, adr_len);
-    if(ret < 0)
+    while(true)
     {
-        if(errno == EAGAIN)
+        int ret = sendto(fd, buffer, len, flags, (struct sockaddr*)&sock_addr->adr, adr_len);
+        if(ret < 0)
         {
-            return C_YET;
+            if(errno == EAGAIN)
+            {
+                continue;
+            }
+            return C_ERR;
         }
-        return C_ERR;
+
+        break;
     }
     return C_OK;
 }
