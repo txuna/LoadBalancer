@@ -76,6 +76,7 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
     ret = relay_socket->SendSocket(socket->querybuf, socket->querylen);
     if(ret == C_ERR)
     {
+        std::cout<<"F"<<std::endl;
         delete []socket->querybuf;
         delete relay_socket;
         return C_ERR;
