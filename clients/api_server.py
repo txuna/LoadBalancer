@@ -9,19 +9,9 @@ import sys
 
 app = Flask(__name__)
 
-test_data = {
-    "1" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "2" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "3" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "4" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "5" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "6" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "7" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-}
-
 @app.route('/')
 def hello_world():    
-    return str(test_data)
+    return "Welcome Flask appllication!"
 
 
 def create_msgpack(value):
