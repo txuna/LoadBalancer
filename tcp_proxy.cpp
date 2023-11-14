@@ -1,5 +1,6 @@
 #include "tcp_proxy.hpp"
 #include <iostream>
+#include <errno.h>
 
 TcpProxy::TcpProxy(Epoll::EventLoop *el, BindManager *bm)
 {
@@ -76,7 +77,7 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
     ret = relay_socket->SendSocket(socket->querybuf, socket->querylen);
     if(ret == C_ERR)
     {
-        std::cout<<"F"<<std::endl;
+        std::cout<<"F: "<<errno<<std::endl;
         delete []socket->querybuf;
         delete relay_socket;
         return C_ERR;
