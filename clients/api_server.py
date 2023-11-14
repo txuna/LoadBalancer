@@ -117,4 +117,4 @@ if __name__ == '__main__':
     
     time.sleep(1)
     # Flask run 
-    app.run(host='localhost', port=int(sys.argv[3]))
+    app.run(host='0.0.0.0', port=int(sys.argv[3]))

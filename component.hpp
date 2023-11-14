@@ -21,6 +21,7 @@ class Component
     public:
         socket_t fd; 
         struct sockaddr_in addr;
+        bool state;
 
         Component(socket_t fd, int relay_port);
         ~Component();

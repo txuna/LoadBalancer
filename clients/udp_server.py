@@ -89,12 +89,13 @@ def connect_server(ip, port):
 
 def echo_server(server_port):
     server_socket = socket(AF_INET, SOCK_DGRAM)
-    address = ('localhost', server_port)
+    address = ('0.0.0.0', server_port)
     server_socket.bind(address)
     
     while True:
         data, address = server_socket.recvfrom(4096)
         #print(f"수신한 데이터: {data.decode()} from Client")
+        data = b"hello world"
         server_socket.sendto(data, address)
         #print("전송 완료")
 

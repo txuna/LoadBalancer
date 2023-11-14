@@ -8,6 +8,7 @@ Component::Component(socket_t fd, int relay_port)
     getpeername(fd, (struct sockaddr*)&this->addr, &len); 
     this->addr.sin_port = htons(relay_port);
     this->fd = fd;
+    this->state = true;
 }
 
 Component::~Component()
