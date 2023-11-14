@@ -198,7 +198,7 @@ void Proxy::ProcessEvent(int retval)
                 int ret = ProcessTcpProxy(socket);
                 if(ret == C_ERR)
                 {
-                    std::cout<<"TcpProxyClient Process Failed"<<std::endl;
+                    std::cout<<"[Log] TcpProxyClient Process Failed: "<<socket->fd<<std::endl;
                     DeleteSocket(socket);
                     continue;
                 }
@@ -207,6 +207,7 @@ void Proxy::ProcessEvent(int retval)
                     continue;
                 }
 
+                std::cout<<"[Log] [TCP Process Client -> Server] FD: "<<socket->fd<<std::endl;
                 break;
             }
 
@@ -242,6 +243,7 @@ void Proxy::ProcessEvent(int retval)
                     continue;
                 }
 
+                std::cout<<"[Log] [TCP Process Client <- Server] FD: "<<client_socket->fd<<std::endl;
                 delete []socket->querybuf;
                 break;
             }
@@ -256,6 +258,9 @@ void Proxy::ProcessEvent(int retval)
                 {
                     continue;
                 }
+
+                std::cout<<"[Log] [UDP Process Client -> Server] FD: "<<socket->fd<<std::endl;
+
                 break;
             }
 
@@ -277,6 +282,8 @@ void Proxy::ProcessEvent(int retval)
                     delete []socket->querybuf;
                     continue;
                 }
+
+                std::cout<<"[Log] [UDP Process Client <- Server] FD: "<<usock->fd<<std::endl;
                 DeleteSocket(usock);
                 delete []socket->querybuf;
                 break;

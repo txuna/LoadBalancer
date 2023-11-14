@@ -10,13 +10,13 @@ import sys
 app = Flask(__name__)
 
 test_data = {
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
-    "hello" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "1" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "2" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "3" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "4" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "5" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "6" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
+    "7" : "hellohellohellohellohellohellohellohellohellohellohellohellohellohello", 
 }
 
 @app.route('/')
@@ -115,6 +115,6 @@ if __name__ == '__main__':
     r_thr.start()
     s_thr.start()
     
-    time.sleep(1)
+    time.sleep(1)   
     # Flask run 
     app.run(host='0.0.0.0', port=int(sys.argv[3]))

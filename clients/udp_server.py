@@ -97,7 +97,7 @@ def echo_server(server_port):
         #print(f"수신한 데이터: {data.decode()} from Client")
         data = b"hello world"
         server_socket.sendto(data, address)
-        #print("전송 완료")
+        print("전송 완료")
 
 if __name__ == '__main__':
     
