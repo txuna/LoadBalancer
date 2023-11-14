@@ -1,6 +1,8 @@
 #include "component.hpp"
 #include <errno.h>
 
+#include <iostream>
+
 Component::Component(socket_t fd, int relay_port)
 {
     socklen_t len = sizeof(this->addr);
@@ -150,6 +152,8 @@ Component* BindComponent::GetRoundRobinComponent()
     {
         index = 0;
     }
+
+    std::cout<<index<<std::endl;
 
     Component *rc = comps[index];
     index += 1;
