@@ -11,11 +11,6 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():  
-    print("I'm GET!")
-    count = 0  
-    time.sleep(2)
-    #for i in range(0, 10000000):
-    #    count += i
     return "Welcome Flask appllication!"
 
 
