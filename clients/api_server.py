@@ -11,6 +11,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():  
+    time.sleep(5)
     return "Welcome Flask appllication!"
 
 
