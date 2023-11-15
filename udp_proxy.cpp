@@ -61,10 +61,6 @@ int UdpProxy::UdpSendToRealServer(Net::UdpSocket *comp_socket)
         delete relay_socket;
         return C_ERR;
     }
-    else if(ret == C_YET)
-    {
-        std::cout<<"[Log] EAGAIN Send UDP socket:"<<relay_socket->fd<<" from client"<<std::endl;
-    }
 
     if(el->AddEvent(relay_socket) == C_ERR)
     {
@@ -100,12 +96,6 @@ int UdpProxy::UdpSendToClient(Net::UdpSocket *relay_socket)
     {
         delete []relay_socket->querybuf;
         return C_ERR;
-    }
-
-    else if(ret == C_YET)
-    {
-        delete []relay_socket->querybuf;
-        return C_YET;
     }
 
     delete []relay_socket->querybuf;

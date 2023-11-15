@@ -83,26 +83,22 @@ int Net::Socket::CreateSocket(int _sock_type, int _protocol)
     this->fd = socket(PF_INET, _protocol, 0);
     if(this->fd == -1)
     {
-        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
     int on = 1;
     if(setsockopt(this->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
     {
-        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
     if((flags = fcntl(this->fd, F_GETFL, 0)) == -1)
     {
-        std::cout<<errno<<std::endl;
         return C_ERR;
     }
     
     if(fcntl(this->fd, F_SETFL, flags | O_NONBLOCK) == -1)
     {
-        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
@@ -220,7 +216,6 @@ int Net::TcpSocket::ConnectSocket()
 
             return C_OK;
         }
-        std::cout<<errno<<std::endl;
         return C_ERR;
     }
 
