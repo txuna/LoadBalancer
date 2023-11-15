@@ -13,8 +13,9 @@ app = Flask(__name__)
 def hello_world():  
     print("I'm GET!")
     count = 0  
-    for i in range(0, 10000000):
-        count += i
+    time.sleep(2)
+    #for i in range(0, 10000000):
+    #    count += i
     return "Welcome Flask appllication!"
 
 
