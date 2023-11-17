@@ -137,26 +137,14 @@ python3 udp_dummpy_client.py [Server IP] [Server Port] [num of request]
 현재 1대의 UDP서버와 2대의 Flask서버 연결
 ###  Flask 테스트  
 - Client  
-서버로 3개의 요청을 보냄 
-![Alt text](./images/image-9.png)
-
-- Server   
-1번 서버에 2개의 요청
-![Alt text](./images/image-10.png)
-2번 서버에 1개의 요청으로 라운드로빈이 됨
-![Alt text](./images/image-11.png)
+서버로 11개의 요청을 보냄
+![Alt text](./images/tcp_11.png)
 
 
 ### Udp Echo 테스트 
 - Client  
-서버로 10개의 요청을 보냄  
-![Alt text](./images/image-12.png)
-
-- Server  
-1번 서버에 5개의 요청
-![Alt text](./images/image-15.png)
-2번 서버에도 5개의 요청 라운드로빈 됨 
-![Alt text](./images/image-16.png)
+서버로 11개의 요청을 보냄  
+![Alt text](./images/udp_11.png)
 
 # Performance 
 ```Python
@@ -215,10 +203,12 @@ for i in range(1, 100000000):
 |TCP|316초|163초|171초|
 |UDP|270초|165초|161초|
 
+### 요청 성공률 - 표 
+
+### Nginx와의 비교 - 표 
+
 # Comment 
 로드밸런서 테스트 결과 추가되는 서버수에 따라 1개에서 2개로는 2배 이상의 시간을 절약하지만 TCP와 UDP 모두 3개 4개 이상의 경우 시간적인 효과는 확인할 수 없었음   
 아마 아키텍쳐의 문제거나 테스트코드의 문제로 예상 중
 
-
-![Alt text](./images/connection.png)
-TCP, UDP둘다 5만개의 커넥션을 맺어본 결과 버그없이 동작 확인
+실제 4개의 클라우드 서버에서 실행결과 TCP의 경우 ~ UDP의 경우 ~

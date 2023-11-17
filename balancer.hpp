@@ -27,7 +27,7 @@ class BalancerProxy
         ErrorCode RegisterComponent(std::string protocol, int port, int relay_port);
         ErrorCode UnRegisterComponent(std::string protocol, int port, int relay_port);
         json Controller(const json &req);
-        json HealthCheckComponent();
+        ErrorCode HealthCheckComponent(std::string state, std::string protocol, int bind_port);
         ErrorCode Verify(const json &req);
 };
 

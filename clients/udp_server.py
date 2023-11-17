@@ -25,9 +25,12 @@ def register(server_port, bind_port):
     
     return msg
 
-def healthcheck():
+def healthcheck(bind_port):
     msg = create_msgpack({
         "cmd" : "healthcheck",
+        "protocol" : "udp", 
+        "port" : bind_port,
+        "state" : "good"
     })
     
     return msg
@@ -48,7 +51,7 @@ def send_handler(client_socket, msg):
     client_socket.send(msg)
 
 
-def recv_handler(client_socket):
+def recv_handler(client_socket, bind_port):
     while True:
         data = client_socket.recv(4096)
         if len(data) < 4:
@@ -66,7 +69,7 @@ def recv_handler(client_socket):
             if "cmd" in response:
                 if response["cmd"] == "healthcheck":
                     #print("Health Check!")
-                    s_thr = threading.Thread(target=send_handler, args=(client_socket, healthcheck(), ))
+                    s_thr = threading.Thread(target=send_handler, args=(client_socket, healthcheck(bind_port), ))
                     s_thr.start()
                     
                 else:
@@ -95,7 +98,7 @@ def echo_server(server_port):
     while True:
         data, address = server_socket.recvfrom(4096)
         #print(f"수신한 데이터: {data.decode()} from Client")
-        data = b"hello world"
+        data = b"hello world" * 800
         server_socket.sendto(data, address)
         print("전송 완료")
 
@@ -107,7 +110,7 @@ if __name__ == '__main__':
     # Control Channel run 
     client_socket = connect_server(sys.argv[1], int(sys.argv[2]))
     
-    r_thr = threading.Thread(target=recv_handler, args=(client_socket, ))
+    r_thr = threading.Thread(target=recv_handler, args=(client_socket, int(sys.argv[4]), ))
     s_thr = threading.Thread(target=send_handler, args=(client_socket, register(int(sys.argv[3]), int(sys.argv[4])), ))
     
     r_thr.start()

@@ -154,6 +154,11 @@ Component* BindComponent::GetRoundRobinComponent()
     }
 
     Component *rc = comps[index];
+    while(rc->state == false)
+    {
+        index += 1; 
+        rc = comps[index];
+    }
     index += 1;
     return rc;
 }

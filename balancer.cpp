@@ -66,6 +66,8 @@ json BalancerProxy::Controller(const json &req)
     std::string cmd = req["cmd"];
     if(cmd == "healthcheck")
     {
+        result = HealthCheckComponent(req["state"], req["protocol"], req["port"]);
+        response["error"] = result;
         return response;
     }
 
@@ -149,11 +151,29 @@ ErrorCode BalancerProxy::UnRegisterComponent(std::string protocol, int port, int
     return ErrorCode::None;
 }
 
-json BalancerProxy::HealthCheckComponent()
+ErrorCode BalancerProxy::HealthCheckComponent(std::string state, std::string protocol, int bind_port)
 {
-    json response = {
+    BindComponent *bc = bm->LoadBindComponent(protocol, bind_port);
+    if(bc == nullptr)
+    {
+        return ErrorCode::None;
+    }
 
-    };
+    std::vector<Component*> *comps = bc->GetComps();
+    for(Component *comp: *comps)
+    {
+        if(socket->fd == comp->fd)
+        {
+            if(state == "good")
+            {
+                comp->state = true;
+            }
+            else
+            {
+                comp->state = false;
+            }
+        }
+    }
 
-    return response;
+    return ErrorCode::None;
 }
