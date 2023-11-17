@@ -79,25 +79,21 @@ int UdpProxy::UdpSendToRealServer(Net::UdpSocket *comp_socket)
 */
 int UdpProxy::UdpSendToClient(Net::UdpSocket *relay_socket)
 {
-    std::cout<<"1"<<std::endl;
     struct sockaddr_in saddr; 
     int ret = relay_socket->ReadUdpSocket(&saddr);
     if(ret == C_ERR)
     {
-        std::cout<<"1 read C_ERR socket err: "<<errno<<std::endl;
         return C_ERR;
     }
 
     else if(ret == C_YET)
     {
-        std::cout<<"1 read C_YET socket err: "<<errno<<std::endl;
         return C_YET;
     }
 
     ret = relay_socket->SendUdpSocket(relay_socket->client_saddr, relay_socket->querybuf, relay_socket->querylen);
     if(ret == C_ERR)
     {
-        std::cout<<"1 send C_ERR socket err: "<<errno<<std::endl;
         delete []relay_socket->querybuf;
         return C_ERR;
     }
