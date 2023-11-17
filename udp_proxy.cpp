@@ -79,6 +79,7 @@ int UdpProxy::UdpSendToRealServer(Net::UdpSocket *comp_socket)
 */
 int UdpProxy::UdpSendToClient(Net::UdpSocket *relay_socket)
 {
+    std::cout<<"1"<<std::endl;
     struct sockaddr_in saddr; 
     int ret = relay_socket->ReadUdpSocket(&saddr);
     if(ret == C_ERR)
