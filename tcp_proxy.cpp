@@ -110,17 +110,20 @@ int TcpProxy::TcpSendToClient(Net::TcpSocket *socket)
     int ret = socket->ReadSocket();
     if(ret == C_ERR)
     {
+        std::cout<<"read C_ERR socket err: "<<errno<<std::endl;
         return C_ERR;
     }
 
     if(ret == C_YET)
     {
+        std::cout<<"read C_YET socket err: "<<errno<<std::endl;
         return C_YET;
     }
 
     ret = client_socket->SendSocket(socket->querybuf, socket->querylen);
     if(ret == C_ERR)
     {
+        std::cout<<"send C_ERR socket err: "<<errno<<std::endl;
         delete []socket->querybuf;
         return C_ERR;
     }
