@@ -51,14 +51,12 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
 
     if(relay_socket->CreateSocket(SockType::TcpRelayClient, SOCK_STREAM) == C_ERR)
     {
-        std::cout<<"1 create C_ERR socket err: "<<errno<<std::endl;
         delete relay_socket;
         return C_ERR;
     }
     
     if(relay_socket->ConnectSocket() == C_ERR)
     {
-        std::cout<<"1 connect C_ERR socket err: "<<errno<<std::endl;
         delete relay_socket;
         return C_ERR;
     }
@@ -66,14 +64,12 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
     int ret = socket->ReadSocket();
     if(ret == C_ERR)
     {
-        std::cout<<"1 read C_ERR socket err: "<<errno<<std::endl;
         delete relay_socket;
         return C_ERR;
     }
 
     if(ret == C_YET)
     {
-        std::cout<<"1 read C_YET socket err: "<<errno<<std::endl;
         delete relay_socket;
         return C_YET;
     }
@@ -81,7 +77,6 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
     ret = relay_socket->SendSocket(socket->querybuf, socket->querylen);
     if(ret == C_ERR)
     {
-        std::cout<<"1 send C_ERR socket err: "<<errno<<std::endl;
         delete []socket->querybuf;
         delete relay_socket;
         return C_ERR;
@@ -89,7 +84,6 @@ int TcpProxy::TcpSendToRealServer(Net::Socket *socket)
 
     if(el->AddEvent(relay_socket) == C_ERR)
     {   
-        std::cout<<"1 addevent C_ERR socket err: "<<errno<<std::endl;
         delete []socket->querybuf;
         delete relay_socket;
         return C_ERR;
@@ -110,27 +104,23 @@ int TcpProxy::TcpSendToClient(Net::TcpSocket *socket)
 
     if(client_socket == nullptr)
     {
-        std::cout<<"client_socket C_ERR socket err: "<<errno<<std::endl;
         return C_ERR;
     }
 
     int ret = socket->ReadSocket();
     if(ret == C_ERR)
     {
-        std::cout<<"read C_ERR socket err: "<<errno<<std::endl;
         return C_ERR;
     }
 
     if(ret == C_YET)
     {
-        std::cout<<"read C_YET socket err: "<<errno<<std::endl;
         return C_YET;
     }
 
     ret = client_socket->SendSocket(socket->querybuf, socket->querylen);
     if(ret == C_ERR)
     {
-        std::cout<<"send C_ERR socket err: "<<errno<<std::endl;
         delete []socket->querybuf;
         return C_ERR;
     }
