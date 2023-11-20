@@ -1,0 +1,19 @@
+from flask import Flask
+from socket import *
+import sys
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello_world():  
+    return "Welcome Flask appllication!" * 1000
+        
+
+if __name__ == '__main__':
+    
+    if len(sys.argv) != 2:
+        print("[Usage] python3 api_server.py [API Server Port]")
+        exit(1)
+
+    # Flask run 
+    app.run(host='0.0.0.0', port=int(sys.argv[1]))
