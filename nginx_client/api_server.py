@@ -6,7 +6,12 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello_world():  
-    return "Welcome Flask appllication!" * 3000
+    count = 0  
+    for i in range(0, 100000000):
+        count += i 
+        
+    return "Hello WOrld"
+    #return "Welcome Flask appllication!" * 3000
         
 
 if __name__ == '__main__':
