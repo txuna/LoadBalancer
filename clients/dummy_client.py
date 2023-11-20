@@ -8,7 +8,7 @@ result = {}
 def dummy(ip, port, index):
     global result
     try:
-        res = requests.get("http://{0}:{1}".format(ip, port), timeout=300)
+        res = requests.get("http://{0}:{1}".format(ip, port), timeout=5)
         result[index] = 1
     except:
         print("[Error] disconnected from server: "+ str(index)+" thread")
