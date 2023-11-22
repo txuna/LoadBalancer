@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#define LISTEN_BACKLOG 511
+
 Net::SockAddr::SockAddr(int port)
 {
     memset(&adr, 0, sizeof(adr));
@@ -184,7 +186,7 @@ int Net::TcpSocket::SendSocket(byte_t *buffer, int len)
 
 int Net::TcpSocket::ListenSocket()
 {
-    if(listen(this->fd, 5) == -1)
+    if(listen(this->fd, LISTEN_BACKLOG) == -1)
     {
         return C_ERR;
     }
